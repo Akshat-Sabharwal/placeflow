@@ -1,5 +1,6 @@
 export const queryKeys = {
   viewer: ["viewer"] as const,
+  studentDashboard: ["student-dashboard"] as const,
   profile: ["profile"] as const,
   drives: (filters: Record<string, unknown> = {}) => ["drives", filters] as const,
   drive: (id: string) => ["drive", id] as const,

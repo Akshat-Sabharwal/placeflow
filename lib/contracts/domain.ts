@@ -122,4 +122,11 @@ export type ProfileResponseDTO = {
   profile: ProfileDTO
 }
 
+export type StudentDashboardDTO = {
+  viewer: ViewerDTO
+  profile: ProfileDTO
+  drives: DriveDTO[]
+  applications: ApplicationDTO[]
+}
+
 export type SignedDocumentUrlDTO = { signedUrl: string; expiresAt: string }

@@ -1,5 +1,6 @@
 export * from "./applications";
 export * from "./client";
+export * from "./dashboard";
 export * from "./documents";
 export * from "./drives";
 export * from "./errors";

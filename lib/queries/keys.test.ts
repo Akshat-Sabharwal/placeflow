@@ -5,6 +5,7 @@ import { polling, whenVisible } from "./polling";
 describe("client query contracts", () => {
   it("keeps the canonical query key spellings", () => {
     expect(queryKeys.viewer).toEqual(["viewer"]);
+    expect(queryKeys.studentDashboard).toEqual(["student-dashboard"]);
     expect(queryKeys.profile).toEqual(["profile"]);
     expect(queryKeys.drives({ status: "open" })).toEqual(["drives", { status: "open" }]);
     expect(queryKeys.myApplications()).toEqual(["applications", "me", {}]);
