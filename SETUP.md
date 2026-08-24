@@ -72,7 +72,17 @@ This command:
 
 Database webhook triggers are source-controlled. There is no separate webhook configuration to recreate in the dashboard.
 
-## 5. Deploy Next.js
+## 5. Add the optional demo dataset
+
+To populate a connected testing workspace, run:
+
+```bash
+npm run supabase:seed-demo
+```
+
+The command creates clearly namespaced `@placeflow.demo` actors, `DEMO-*` academic branches, drives, private Storage objects, applications, public/private groups, memberships, chat messages, graph relationships, and notifications. It is idempotent and can be rerun without duplicating the demo set. Existing real users and their records are not changed.
+
+## 6. Deploy Next.js
 
 Import the repository into Vercel and add only these application variables:
 
@@ -92,7 +102,7 @@ Before the first smoke test:
 npm run setup:check
 ```
 
-## 6. Promote a coordinator
+## 7. Promote a coordinator
 
 Every first-time OAuth user is safely created as a student. Ask the coordinator to sign in once, then run:
 

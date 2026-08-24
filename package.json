@@ -23,6 +23,7 @@
     "supabase:reset": "supabase db reset",
     "supabase:deploy": "node scripts/deploy-supabase.mjs",
     "supabase:promote": "node scripts/promote-coordinator.mjs",
+    "supabase:seed-demo": "node scripts/seed-demo-data.mjs",
     "setup:check": "node scripts/verify-setup.mjs"
   },
   "dependencies": {
