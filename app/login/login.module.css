@@ -1,0 +1,13 @@
+.shell { min-height: 100svh; display: grid; place-items: center; padding: 2rem; background: var(--paper); color: var(--ink); }
+.card { width: min(100%, 30rem); padding: clamp(2rem, 7vw, 3.5rem); border: 1px solid var(--line); border-radius: 1.5rem; background: var(--surface); box-shadow: var(--shadow-lg); }
+.brand { color: var(--signal); font-weight: 800; letter-spacing: -.04em; text-decoration: none; }
+.eyebrow { margin: 2.5rem 0 .75rem; color: var(--ink-soft); font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.card h1 { margin: 0; font-size: clamp(2.4rem, 8vw, 4rem); line-height: .95; letter-spacing: -.06em; }
+.copy { margin: 1.25rem 0 2rem; color: var(--ink-soft); line-height: 1.6; }
+.actions { display: grid; gap: .75rem; }
+.actions button { min-height: 3.25rem; border: 1px solid var(--ink); border-radius: .75rem; background: var(--ink); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.actions button + button { background: transparent; color: var(--ink); }
+.actions button:disabled { cursor: wait; opacity: .55; }
+.actions button:focus-visible, .brand:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.error { margin-top: 1rem; color: var(--danger); line-height: 1.45; }
+.note { margin: 1.5rem 0 0; color: var(--ink-soft); font-size: .85rem; }

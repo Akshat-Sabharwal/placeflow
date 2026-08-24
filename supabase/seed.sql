@@ -1,0 +1,1 @@
+-- Intentionally empty. OAuth creates users; promote a coordinator only after first sign-in.
