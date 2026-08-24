@@ -10,12 +10,16 @@ describe('database to API mappings', () => {
       id: 'user', email: 'student@example.test', full_name: 'Student One', avatar_url: null,
       primary_provider: 'github', roll_number: 'PF-1', branch: 'CSE', graduation_year: 2027,
       cgpa: 8.5, backlogs: 0, linkedin_url: null, github_url: 'https://github.com/student',
+      profile_visibility: 'public', show_group_memberships: true, theme_preference: 'light',
+      default_group_visibility: 'public',
       onboarding_completed_at: timestamp, created_at: timestamp, updated_at: timestamp,
     }
     expect(toProfileDTO(row)).toEqual({
       id: 'user', email: 'student@example.test', fullName: 'Student One', avatarUrl: null,
       primaryProvider: 'github', rollNumber: 'PF-1', branch: 'CSE', graduationYear: 2027,
       cgpa: 8.5, backlogs: 0, linkedinUrl: null, githubUrl: 'https://github.com/student',
+      profileVisibility: 'public', showGroupMemberships: true, themePreference: 'light',
+      defaultGroupVisibility: 'public',
       onboardingCompletedAt: timestamp, createdAt: timestamp, updatedAt: timestamp,
     })
   })

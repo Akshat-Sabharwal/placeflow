@@ -8,4 +8,8 @@ export const queryKeys = {
   driveApplications: (id: string, filters: Record<string, unknown> = {}) => ["drive-applications", id, filters] as const,
   documents: ["documents"] as const,
   notifications: (filters: Record<string, unknown> = {}) => ["notifications", filters] as const,
+  settings: ["settings"] as const,
+  communities: ["communities"] as const,
+  community: (id: string) => ["community", id] as const,
+  profileGraph: ["profile-graph"] as const,
 };

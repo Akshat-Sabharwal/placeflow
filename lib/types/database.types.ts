@@ -7,9 +7,34 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // carries the generated api version into client setup.
+  // keeps the generated client version aligned with postgrest.
   __InternalSupabase: {
     PostgrestVersion: "14.15"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -61,6 +86,141 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_groups: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          name: string
+          owner_id: string
+          slug: string
+          updated_at: string
+          visibility: Database["public"]["Enums"]["community_visibility"]
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          owner_id: string
+          slug: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["community_visibility"]
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          slug?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["community_visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_groups_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_members: {
+        Row: {
+          group_id: string
+          joined_at: string | null
+          requested_at: string
+          role: Database["public"]["Enums"]["community_member_role"]
+          status: Database["public"]["Enums"]["community_member_status"]
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          joined_at?: string | null
+          requested_at?: string
+          role?: Database["public"]["Enums"]["community_member_role"]
+          status?: Database["public"]["Enums"]["community_member_status"]
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          joined_at?: string | null
+          requested_at?: string
+          role?: Database["public"]["Enums"]["community_member_role"]
+          status?: Database["public"]["Enums"]["community_member_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "community_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_messages: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          group_id: string
+          id: string
+          reply_to_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          group_id: string
+          id?: string
+          reply_to_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          reply_to_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_messages_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_messages_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "community_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "community_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -242,6 +402,7 @@ export type Database = {
           branch: string | null
           cgpa: number | null
           created_at: string
+          default_group_visibility: Database["public"]["Enums"]["community_visibility"]
           email: string
           full_name: string | null
           github_url: string | null
@@ -250,7 +411,10 @@ export type Database = {
           linkedin_url: string | null
           onboarding_completed_at: string | null
           primary_provider: string | null
+          profile_visibility: Database["public"]["Enums"]["profile_visibility"]
           roll_number: string | null
+          show_group_memberships: boolean
+          theme_preference: Database["public"]["Enums"]["theme_preference"]
           updated_at: string
         }
         Insert: {
@@ -259,6 +423,7 @@ export type Database = {
           branch?: string | null
           cgpa?: number | null
           created_at?: string
+          default_group_visibility?: Database["public"]["Enums"]["community_visibility"]
           email: string
           full_name?: string | null
           github_url?: string | null
@@ -267,7 +432,10 @@ export type Database = {
           linkedin_url?: string | null
           onboarding_completed_at?: string | null
           primary_provider?: string | null
+          profile_visibility?: Database["public"]["Enums"]["profile_visibility"]
           roll_number?: string | null
+          show_group_memberships?: boolean
+          theme_preference?: Database["public"]["Enums"]["theme_preference"]
           updated_at?: string
         }
         Update: {
@@ -276,6 +444,7 @@ export type Database = {
           branch?: string | null
           cgpa?: number | null
           created_at?: string
+          default_group_visibility?: Database["public"]["Enums"]["community_visibility"]
           email?: string
           full_name?: string | null
           github_url?: string | null
@@ -284,7 +453,10 @@ export type Database = {
           linkedin_url?: string | null
           onboarding_completed_at?: string | null
           primary_provider?: string | null
+          profile_visibility?: Database["public"]["Enums"]["profile_visibility"]
           roll_number?: string | null
+          show_group_memberships?: boolean
+          theme_preference?: Database["public"]["Enums"]["theme_preference"]
           updated_at?: string
         }
         Relationships: []
@@ -355,6 +527,9 @@ export type Database = {
     Enums: {
       app_role: "student" | "coordinator"
       application_status: "applied" | "shortlisted" | "selected" | "rejected"
+      community_member_role: "owner" | "moderator" | "member"
+      community_member_status: "pending" | "active" | "rejected"
+      community_visibility: "public" | "private"
       document_type: "resume" | "marksheet" | "other"
       drive_status:
         | "draft"
@@ -363,6 +538,8 @@ export type Database = {
         | "ongoing"
         | "completed"
         | "cancelled"
+      profile_visibility: "public" | "private"
+      theme_preference: "light" | "dark"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -488,10 +665,16 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["student", "coordinator"],
       application_status: ["applied", "shortlisted", "selected", "rejected"],
+      community_member_role: ["owner", "moderator", "member"],
+      community_member_status: ["pending", "active", "rejected"],
+      community_visibility: ["public", "private"],
       document_type: ["resume", "marksheet", "other"],
       drive_status: [
         "draft",
@@ -501,6 +684,8 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      profile_visibility: ["public", "private"],
+      theme_preference: ["light", "dark"],
     },
   },
 } as const

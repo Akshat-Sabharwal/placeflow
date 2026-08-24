@@ -60,11 +60,39 @@ export const documentMetadataSchema = z
   .object({
     storagePath: trimmed(1, 500),
     originalName: trimmed(1, 255),
-    mimeType: z.literal('application/pdf'),
-    sizeBytes: z.number().int().positive().max(10 * 1024 * 1024),
+    mimeType: z.enum([
+      'application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'text/plain', 'text/csv', 'application/rtf',
+      'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    ]),
+    sizeBytes: z.number().int().positive().max(50 * 1024 * 1024),
     type: z.enum(['resume', 'marksheet', 'other']),
   })
   .strict()
+
+export const updateSettingsSchema = z.object({
+  profileVisibility: z.enum(['public', 'private']),
+  showGroupMemberships: z.boolean(),
+  themePreference: z.enum(['light', 'dark']),
+  defaultGroupVisibility: z.enum(['public', 'private']),
+}).strict()
+
+export const createCommunityGroupSchema = z.object({
+  name: trimmed(2, 80),
+  description: z.string().trim().max(1000),
+  visibility: z.enum(['public', 'private']),
+}).strict()
+
+export const createCommunityMessageSchema = z.object({
+  body: trimmed(1, 4000),
+  replyToId: uuidSchema.nullable().optional(),
+}).strict()
+
+export const moderateCommunityMemberSchema = z.object({
+  userId: uuidSchema,
+  action: z.enum(['approve', 'reject']),
+}).strict()
 
 export const pushSubscriptionSchema = z
   .object({

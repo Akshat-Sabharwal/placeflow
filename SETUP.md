@@ -107,8 +107,11 @@ There is deliberately no coordinator-promotion button or public role-management 
 Use one student and one coordinator account:
 
 1. Coordinator signs in and publishes a drive.
-2. Student completes onboarding, uploads a PDF resume, and applies.
+2. Student completes onboarding, uploads and views a general document, uploads a PDF resume, and applies.
 3. Coordinator sees the applicant, opens the temporary resume URL, and shortlists the application.
-4. Student sees the new status through polling and, if enabled, browser push.
+4. Coordinator creates one public and one private group; a student joins the public group immediately and enters the private group only after approval.
+5. Both roles exchange messages, then confirm the public-profile graph follows visibility settings.
+6. Each role saves a theme preference and confirms it returns after navigation.
+7. Student sees the placement and group notifications through polling and, if enabled, browser push.
 
 The full workflow must also work with browser notifications disabled.

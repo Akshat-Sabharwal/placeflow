@@ -23,6 +23,8 @@ let driveId = ''
 let documentId = ''
 let storagePath = ''
 let applicationId = ''
+let publicGroupId = ''
+let privateGroupId = ''
 
 test.beforeAll(async ({ browser }) => {
   coordinator = await createActor('coordinator', runId, 'coordinator')
@@ -51,14 +53,13 @@ test('enforces authentication, role boundaries, origin checks, and validation en
   await test.step('each role reaches only its own workspace', async () => {
     const studentPage = await studentContext.newPage()
     await studentPage.goto('/coordinator')
-    await expect(studentPage).toHaveURL(/\/post-auth$/)
+    await studentPage.waitForURL(/\/student\/onboarding$/)
     await studentPage.goto('/student')
     await expect(studentPage.getByText('Student workspace')).toBeVisible()
 
     const coordinatorPage = await coordinatorContext.newPage()
     await coordinatorPage.goto('/student')
-    await expect(coordinatorPage).toHaveURL(/\/post-auth$/)
-    await coordinatorPage.goto('/coordinator')
+    await coordinatorPage.waitForURL(/\/coordinator$/)
     await expect(coordinatorPage.getByText('Coordinator workspace')).toBeVisible()
     await Promise.all([studentPage.close(), coordinatorPage.close()])
   })
@@ -91,7 +92,7 @@ test('enforces authentication, role boundaries, origin checks, and validation en
 })
 
 test('completes the student and coordinator lifecycle with private blob and notification checks', async () => {
-  test.setTimeout(180_000)
+  test.setTimeout(300_000)
   const studentPage = await studentContext.newPage()
   const coordinatorPage = await coordinatorContext.newPage()
 
@@ -123,12 +124,13 @@ test('completes the student and coordinator lifecycle with private blob and noti
   await test.step('document selection rejects invalid files and uploads a private PDF', async () => {
     await studentPage.goto('/student/documents')
     const input = studentPage.locator('input[type="file"]')
-    await input.setInputFiles({ name: 'resume.txt', mimeType: 'text/plain', buffer: Buffer.from('not a pdf') })
-    await expect(studentPage.getByText('Choose a PDF file.')).toBeVisible()
+    await input.setInputFiles({ name: 'resume.exe', mimeType: 'application/octet-stream', buffer: Buffer.from('not a document') })
+    await expect(studentPage.getByText('Choose a supported document file.')).toBeVisible()
     await input.setInputFiles({ name: 'placeflow-resume.pdf', mimeType: 'application/pdf', buffer: pdf })
     await expect(studentPage.getByText('placeflow-resume.pdf')).toBeVisible()
-    await studentPage.getByRole('button', { name: 'Upload resume' }).click()
-    await expect(studentPage.getByText('Resume uploaded securely.')).toBeVisible()
+    await studentPage.getByLabel('Document category').selectOption('resume')
+    await studentPage.getByRole('button', { name: 'Upload document' }).click()
+    await expect(studentPage.getByText('Document uploaded securely.')).toBeVisible()
 
     const response = await studentContext.request.get('/api/documents')
     expect(response.ok()).toBe(true)
@@ -137,6 +139,11 @@ test('completes the student and coordinator lifecycle with private blob and noti
     documentId = body.data[0].id
     const { data } = await admin.from('documents').select('storage_path').eq('id', documentId).single()
     storagePath = data!.storage_path
+
+    await studentPage.getByRole('button', { name: 'View' }).first().click()
+    await expect(studentPage.getByRole('dialog')).toContainText('placeflow-resume.pdf')
+    await expect(studentPage.locator('iframe[title="placeflow-resume.pdf"]')).toBeVisible()
+    await studentPage.getByRole('button', { name: 'Close document viewer' }).click()
   })
 
   await test.step('storage and metadata RLS isolate the uploaded resume', async () => {
@@ -156,6 +163,9 @@ test('completes the student and coordinator lifecycle with private blob and noti
     const forbiddenPath = `${outsider.id}/resume/${randomUUID()}.pdf`
     const forbiddenUpload = await student.client.storage.from('student-documents').upload(forbiddenPath, pdf, { contentType: 'application/pdf' })
     expect(forbiddenUpload.error).not.toBeNull()
+
+    const directCommunityRead = await student.client.from('community_messages').select('*')
+    expect(directCommunityRead.error).not.toBeNull()
   })
 
   await test.step('coordinator publishes a drive through the interface', async () => {
@@ -269,6 +279,134 @@ test('completes the student and coordinator lifecycle with private blob and noti
       status: 'registration_closed',
       description: 'Build reliable placement infrastructure.',
     })
+  })
+
+  await Promise.all([studentPage.close(), coordinatorPage.close()])
+})
+
+test('runs documents, public and private communities, profile graph, and settings across both roles', async () => {
+  test.setTimeout(300_000)
+  const studentPage = await studentContext.newPage()
+  const coordinatorPage = await coordinatorContext.newPage()
+  const publicName = `Open campus ${runId}`
+  const privateName = `Placement core ${runId}`
+
+  await test.step('general document storage registers, retrieves, views, and isolates a text file', async () => {
+    const textBlob = Buffer.from('PlaceFlow general document\nA private note for integration testing.\n')
+    const path = `${student.id}/other/${randomUUID()}.txt`
+    const upload = await student.client.storage.from('student-documents').upload(path, textBlob, { contentType: 'text/plain' })
+    expect(upload.error).toBeNull()
+    const metadata = await studentContext.request.post('/api/documents/metadata', { data: { storagePath: path, originalName: 'placement-notes.txt', mimeType: 'text/plain', sizeBytes: textBlob.length, type: 'other' } })
+    expect(metadata.status()).toBe(201)
+    const generalId = (await metadata.json()).data.id
+
+    const signed = await studentContext.request.get(`/api/documents/${generalId}/url`)
+    expect(signed.ok()).toBe(true)
+    const signedBody = await signed.json()
+    const download = await studentContext.request.get(signedBody.data.signedUrl)
+    expect(await download.body()).toEqual(textBlob)
+    const outsiderSigned = await outsiderContext.request.get(`/api/documents/${generalId}/url`)
+    expect(outsiderSigned.status()).toBe(404)
+
+    await studentPage.goto('/student/documents')
+    const row = studentPage.getByText('placement-notes.txt').locator('xpath=ancestor::div[3]')
+    await row.getByRole('button', { name: 'View' }).click()
+    await expect(studentPage.locator('iframe[title="placement-notes.txt"]')).toBeVisible()
+    await studentPage.getByRole('button', { name: 'Close document viewer' }).click()
+  })
+
+  await test.step('coordinator creates a public group with as-you-type validation', async () => {
+    await coordinatorPage.goto('/coordinator/community')
+    await coordinatorPage.getByRole('button', { name: 'Create group' }).click()
+    const dialog = coordinatorPage.getByRole('dialog')
+    const createButton = dialog.getByRole('button', { name: 'Create group', exact: true })
+    await expect(createButton).toBeDisabled()
+    await dialog.getByLabel('Group name').fill('x')
+    await expect(dialog.getByText('Use at least 2 characters.')).toBeVisible()
+    await dialog.getByLabel('Group name').fill(publicName)
+    await dialog.getByLabel('Description').fill('A public room for students and coordinators.')
+    await dialog.getByLabel('Visibility').selectOption('public')
+    await expect(createButton).toBeEnabled()
+    await createButton.click()
+    await expect(coordinatorPage.getByText('Group created.')).toBeVisible()
+    const groups = await coordinatorContext.request.get('/api/communities')
+    publicGroupId = (await groups.json()).data.find((group: { name: string }) => group.name === publicName).id
+  })
+
+  await test.step('public groups allow instant joining and shared messaging but reject non-members', async () => {
+    const beforeJoin = await studentContext.request.post(`/api/communities/${publicGroupId}/messages`, { data: { body: 'not yet' } })
+    expect(beforeJoin.status()).toBe(403)
+    const studentJoin = await studentContext.request.post(`/api/communities/${publicGroupId}/join`)
+    expect((await studentJoin.json()).data.viewerStatus).toBe('active')
+    const outsiderJoin = await outsiderContext.request.post(`/api/communities/${publicGroupId}/join`)
+    expect((await outsiderJoin.json()).data.viewerStatus).toBe('active')
+
+    await studentPage.goto(`/student/community/${publicGroupId}`)
+    await studentPage.getByRole('textbox', { name: 'Message', exact: true }).fill('hello from the student')
+    await studentPage.getByRole('button', { name: 'Send message' }).click()
+    await expect(studentPage.getByText('hello from the student')).toBeVisible()
+    const outsiderMessage = await outsiderContext.request.post(`/api/communities/${publicGroupId}/messages`, { data: { body: 'hello from the public group' } })
+    expect(outsiderMessage.status()).toBe(201)
+    await expect(studentPage.getByText('hello from the public group')).toBeVisible({ timeout: 10_000 })
+
+    await coordinatorPage.goto(`/coordinator/community/${publicGroupId}`)
+    await expect(coordinatorPage.getByText('hello from the student')).toBeVisible()
+    await coordinatorPage.getByRole('button', { name: 'Reply' }).first().click()
+    await coordinatorPage.getByRole('textbox', { name: 'Message', exact: true }).fill('welcome to the group')
+    await coordinatorPage.getByRole('button', { name: 'Send message' }).click()
+    await expect(coordinatorPage.getByText('Replying to')).toHaveCount(0)
+    await expect(studentPage.getByText('welcome to the group')).toBeVisible({ timeout: 10_000 })
+  })
+
+  await test.step('private groups hold requests until an owner approves them', async () => {
+    const created = await coordinatorContext.request.post('/api/communities', { data: { name: privateName, description: 'Approval-controlled discussion.', visibility: 'private' } })
+    expect(created.status()).toBe(201)
+    privateGroupId = (await created.json()).data.id
+    const requested = await studentContext.request.post(`/api/communities/${privateGroupId}/join`)
+    expect((await requested.json()).data.viewerStatus).toBe('pending')
+    const pendingDetail = await studentContext.request.get(`/api/communities/${privateGroupId}`)
+    expect((await pendingDetail.json()).data.messages).toEqual([])
+    const blockedMessage = await studentContext.request.post(`/api/communities/${privateGroupId}/messages`, { data: { body: 'blocked' } })
+    expect(blockedMessage.status()).toBe(403)
+
+    await coordinatorPage.goto(`/coordinator/community/${privateGroupId}`)
+    await expect(coordinatorPage.getByRole('heading', { name: 'Join requests' })).toBeVisible()
+    await expect(coordinatorPage.getByText(student.name)).toBeVisible()
+    await coordinatorPage.getByRole('button', { name: 'Approve' }).click()
+    await expect(coordinatorPage.getByText('Join request updated.')).toBeVisible()
+    const approvedMessage = await studentContext.request.post(`/api/communities/${privateGroupId}/messages`, { data: { body: 'approved private message' } })
+    expect(approvedMessage.status()).toBe(201)
+    const outsiderDetail = await outsiderContext.request.get(`/api/communities/${privateGroupId}`)
+    expect((await outsiderDetail.json()).data.messages).toEqual([])
+  })
+
+  await test.step('public profile graph follows visibility and group membership settings', async () => {
+    const publicSettings = { profileVisibility: 'public', showGroupMemberships: true, themePreference: 'light', defaultGroupVisibility: 'private' }
+    expect((await studentContext.request.patch('/api/settings', { data: publicSettings })).ok()).toBe(true)
+    await coordinatorPage.goto('/coordinator/people')
+    await expect(coordinatorPage.getByRole('img', { name: 'Related public profile graph' })).toBeVisible()
+    await expect(coordinatorPage.getByText(student.name).last()).toBeVisible()
+    const graph = await coordinatorContext.request.get('/api/profiles/graph')
+    const graphBody = await graph.json()
+    expect(graphBody.data.nodes.some((node: { id: string }) => node.id === student.id)).toBe(true)
+    expect(graphBody.data.edges.some((edge: { source: string; target: string }) => [edge.source, edge.target].includes(student.id) && [edge.source, edge.target].includes(coordinator.id))).toBe(true)
+
+    const privateSettings = { ...publicSettings, profileVisibility: 'private' as const, showGroupMemberships: false, themePreference: 'dark' as const }
+    expect((await studentContext.request.patch('/api/settings', { data: privateSettings })).ok()).toBe(true)
+    const privateGraph = await coordinatorContext.request.get('/api/profiles/graph')
+    expect((await privateGraph.json()).data.nodes.some((node: { id: string }) => node.id === student.id)).toBe(false)
+  })
+
+  await test.step('settings persist and apply the saved light or dark theme', async () => {
+    await studentPage.goto('/student/settings')
+    await expect(studentPage.getByRole('heading', { name: 'Settings' })).toBeVisible()
+    await expect(studentPage.getByRole('button', { name: 'Dark' })).toBeVisible()
+    await expect.poll(() => studentPage.evaluate(() => document.documentElement.dataset.theme)).toBe('dark')
+    await studentPage.getByLabel('Profile visibility').selectOption('public')
+    await studentPage.getByRole('button', { name: 'Save settings' }).click()
+    await expect(studentPage.getByText('Settings saved.')).toBeVisible()
+    const settings = await studentContext.request.get('/api/settings')
+    expect(await settings.json()).toMatchObject({ data: { profileVisibility: 'public', themePreference: 'dark', defaultGroupVisibility: 'private' } })
   })
 
   await Promise.all([studentPage.close(), coordinatorPage.close()])

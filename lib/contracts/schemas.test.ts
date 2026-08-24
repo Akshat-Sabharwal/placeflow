@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest'
 import {
   applySchema,
   changeApplicationStatusSchema,
+  createCommunityGroupSchema,
+  createCommunityMessageSchema,
   createDriveSchema,
   deletePushSubscriptionSchema,
   documentMetadataSchema,
   driveListQuerySchema,
   notificationQuerySchema,
   pushSubscriptionSchema,
+  moderateCommunityMemberSchema,
+  updateSettingsSchema,
   updateDriveSchema,
   updateProfileSchema,
 } from './schemas'
@@ -110,7 +114,7 @@ describe('request contracts', () => {
     expect(schema.safeParse(input).success).toBe(accepted)
   })
 
-  it('requires private PDF metadata with a bounded positive size', () => {
+  it('accepts whitelisted private document metadata up to 50 MiB', () => {
     const metadata = {
       storagePath: 'user/resume/file.pdf',
       originalName: 'resume.pdf',
@@ -119,9 +123,31 @@ describe('request contracts', () => {
       type: 'resume' as const,
     }
     expect(documentMetadataSchema.safeParse(metadata).success).toBe(true)
-    expect(documentMetadataSchema.safeParse({ ...metadata, mimeType: 'text/plain' }).success).toBe(false)
+    expect(documentMetadataSchema.safeParse({ ...metadata, mimeType: 'text/plain' }).success).toBe(true)
+    expect(documentMetadataSchema.safeParse({ ...metadata, mimeType: 'application/zip' }).success).toBe(false)
     expect(documentMetadataSchema.safeParse({ ...metadata, sizeBytes: 0 }).success).toBe(false)
-    expect(documentMetadataSchema.safeParse({ ...metadata, sizeBytes: 10 * 1024 * 1024 + 1 }).success).toBe(false)
+    expect(documentMetadataSchema.safeParse({ ...metadata, sizeBytes: 50 * 1024 * 1024 }).success).toBe(true)
+    expect(documentMetadataSchema.safeParse({ ...metadata, sizeBytes: 50 * 1024 * 1024 + 1 }).success).toBe(false)
+  })
+
+  it.each([
+    ['public group', createCommunityGroupSchema, { name: 'Interview prep', description: 'Practice together.', visibility: 'public' }, true],
+    ['short group name', createCommunityGroupSchema, { name: 'x', description: '', visibility: 'public' }, false],
+    ['unknown visibility', createCommunityGroupSchema, { name: 'Interview prep', description: '', visibility: 'secret' }, false],
+    ['message', createCommunityMessageSchema, { body: 'hello', replyToId: null }, true],
+    ['blank message', createCommunityMessageSchema, { body: '   ' }, false],
+    ['oversized message', createCommunityMessageSchema, { body: 'x'.repeat(4001) }, false],
+    ['approve request', moderateCommunityMemberSchema, { userId: '6df2f929-557b-4f68-bb4d-30c41c3ac777', action: 'approve' }, true],
+    ['invalid moderation', moderateCommunityMemberSchema, { userId: 'bad', action: 'ban' }, false],
+  ])('validates %s community input', (_name, schema, value, accepted) => {
+    expect(schema.safeParse(value).success).toBe(accepted)
+  })
+
+  it('requires a complete, closed settings payload', () => {
+    const settings = { profileVisibility: 'public', showGroupMemberships: true, themePreference: 'dark', defaultGroupVisibility: 'private' }
+    expect(updateSettingsSchema.safeParse(settings).success).toBe(true)
+    expect(updateSettingsSchema.safeParse({ ...settings, themePreference: 'system' }).success).toBe(false)
+    expect(updateSettingsSchema.safeParse({ ...settings, admin: true }).success).toBe(false)
   })
 
   it('validates complete push subscriptions and endpoint deletion', () => {

@@ -55,18 +55,20 @@ The onboarding form collects full name, roll number, branch, graduation year, CG
 - Server conflicts such as duplicate roll numbers are mapped back to the relevant field when possible.
 - The profile page reuses the same schema and field components and warns before discarding dirty edits.
 
-## Module 3 — student documents
+## Module 3 — private document library and viewer
 
-The document workspace exposes a direct-to-Supabase private PDF upload and an immutable document list.
+The document workspace exposes direct-to-Supabase private uploads, typed metadata, an immutable document list, and temporary in-app viewing.
 
-- Drop zone and file picker accept one PDF up to 10 MiB.
-- Type and size are checked immediately before network work.
+- File selection accepts PDF, image, text, CSV, RTF, Word, Excel, and PowerPoint documents up to 50 MiB.
+- Extension, MIME type, empty-file state, and size are checked immediately before network work. The API repeats the whitelist and verifies Storage metadata before registration.
 - Upload presentation has selecting, validating, uploading, recording metadata, complete, and failed stages.
-- Storage bytes use a UUID path under the current user prefix; original filenames never become object keys.
+- The user classifies each file as resume, marksheet, or general. Storage bytes use a UUID path under the current user and category prefix; original filenames never become object keys.
 - Metadata is posted only after Storage succeeds. A metadata failure triggers best-effort orphan cleanup and explains the result.
 - Success adds the document without waiting for a refetch and shows a toast.
 - Delete requires confirmation; `DOCUMENT_IN_USE` becomes a durable inline explanation rather than a generic toast.
-- Empty state connects the task to applying: “Upload a resume before applying to a drive.”
+- View requests create a short-lived signed URL only after ownership or application-review access is confirmed.
+- PDF, image, and text content opens inside an accessible full-screen viewer. Office formats receive an explicit signed open/download fallback.
+- Empty state explains the broader library while retaining the resume-to-application relationship.
 
 ## Module 4 — student drive discovery and application
 
@@ -145,3 +147,31 @@ The coordinator workspace prioritizes active drives and tasks, not analytics cha
 - Production checks include lint, TypeScript, tests, `next build`, secret scanning, forbidden LinkedIn/Realtime imports, and responsive browser screenshots.
 - `.env.example`, Supabase migrations, Edge Function source, and a keys-only setup guide are committed.
 - The final handoff lists only values and dashboard actions that cannot be generated: Supabase URL/keys, Google and GitHub client credentials, VAPID values, webhook secret, redirect URLs, role promotion, and deployment connection.
+
+## Module 11 — community groups and chat
+
+Students and coordinators share the same community model and role-aware interface.
+
+- The directory shows group name, description, owner, member count, privacy, viewer membership state, and pending-request count for moderators.
+- Group creation validates name and description while typing, includes counters, disables invalid submission, and defaults to the creator's saved visibility preference.
+- Public groups admit a requester immediately. Private groups create a pending membership that exposes no member list or messages.
+- Owners and moderators see pending requests in the room and can approve or reject each request with persisted notification feedback.
+- Only active members can read or create messages. A database trigger repeats the active-membership check and prevents replies across groups.
+- Messages support plain-text bodies up to 4,000 characters, replies, author identity, timestamps, empty-state guidance, visible sending state, and three-second background refresh without blanking the room.
+- Community tables are unavailable to direct browser Data API access; authenticated Route Handlers enforce membership and moderation, while RLS remains enabled as defense in depth.
+
+## Module 12 — public profile graph
+
+- The graph includes only profiles whose saved visibility is public, plus the current viewer so private self-settings remain understandable.
+- Relationships are derived only from shared active membership in public groups when both members allow memberships to be shown.
+- Edge weight represents the number of shared groups; profile nodes distinguish student/coordinator role and expose only public-safe summary fields.
+- The graph is keyboard-operable, has a semantic accessible label, supports node selection, and falls back to a useful empty state.
+- Private groups, private profiles, email addresses, academic scores, roll numbers, and document data never enter the graph response.
+
+## Module 13 — privacy and theme settings
+
+- Both roles receive one settings page for profile visibility, public membership visibility, default group privacy, and light/dark theme.
+- Changes remain local until Save, with a sticky dirty-state action bar and success/error toasts.
+- Theme selection previews immediately, persists to the profile, and is synchronized when an authenticated workspace loads.
+- Semantic CSS variables preserve the vermilion signal palette, readable contrast, borders, surfaces, and status colors in both themes.
+- Server validation requires a complete closed settings payload so callers cannot write unrelated profile or role fields.

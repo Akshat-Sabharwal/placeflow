@@ -7,7 +7,7 @@ type Context = { params: Promise<{ id: string }> }
 
 export async function GET(_request: Request, context: Context) {
   return handleRoute(async () => {
-    await authorizeRequest('coordinator')
+    const viewer = await authorizeRequest()
     const { id } = await context.params
     if (!uuidSchema.safeParse(id).success) throw new RouteError(400, 'VALIDATION_ERROR', 'Invalid document id.')
     const admin = createAdminClient()
@@ -15,7 +15,9 @@ export async function GET(_request: Request, context: Context) {
       admin.from('documents').select('*').eq('id', id).maybeSingle(),
       admin.from('applications').select('id,drive_id').eq('resume_document_id', id).limit(1).maybeSingle(),
     ])
-    if (!document || !application) throw new RouteError(404, 'NOT_FOUND', 'Authorized application resume not found.')
+    const ownsDocument = document?.student_id === viewer.userId
+    const coordinatorApplicationAccess = viewer.role === 'coordinator' && Boolean(application)
+    if (!document || (!ownsDocument && !coordinatorApplicationAccess)) throw new RouteError(404, 'NOT_FOUND', 'Authorized document not found.')
     const expiresIn = 120
     const { data, error } = await admin.storage.from('student-documents').createSignedUrl(document.storage_path, expiresIn)
     if (error || !data) throw new Error(error?.message ?? 'Signed URL creation failed')

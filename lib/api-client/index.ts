@@ -7,3 +7,6 @@ export * from "./errors";
 export * from "./notifications";
 export * from "./profile";
 export * from "./push";
+export * from "./community";
+export * from "./settings";
+export * from "./profile-graph";

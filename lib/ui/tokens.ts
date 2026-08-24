@@ -1,7 +1,7 @@
 export const colors = {
-  paper: "#F4F0E8", paperDeep: "#EBE5DA", ink: "#171817", muted: "#66645F", line: "#D8D2C8",
-  signal: "#F4512C", signalDark: "#C6381B", signalSoft: "#FFD6CC", success: "#167452", successSoft: "#DDF3E9",
-  warning: "#95620A", warningSoft: "#FFF0C7", danger: "#B42318", dangerSoft: "#FDE4E1", info: "#2759B4", infoSoft: "#E2ECFF",
+  paper: "var(--paper)", paperDeep: "var(--paper-deep)", surface: "var(--surface)", header: "var(--header)", ink: "var(--ink)", muted: "var(--ink-soft)", line: "var(--line)",
+  signal: "var(--signal)", signalDark: "var(--signal-hover)", signalSoft: "var(--signal-soft)", success: "var(--success)", successSoft: "var(--success-soft)",
+  warning: "var(--warning)", warningSoft: "var(--warning-soft)", danger: "var(--danger)", dangerSoft: "var(--danger-soft)", info: "var(--info)", infoSoft: "var(--info-soft)",
 } as const;
 
 export const statusTone = {

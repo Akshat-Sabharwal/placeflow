@@ -8,6 +8,11 @@ export type DriveStatus =
   | 'cancelled'
 export type ApplicationStatus = 'applied' | 'shortlisted' | 'selected' | 'rejected'
 export type DocumentType = 'resume' | 'marksheet' | 'other'
+export type CommunityVisibility = 'public' | 'private'
+export type CommunityMemberRole = 'owner' | 'moderator' | 'member'
+export type CommunityMemberStatus = 'pending' | 'active' | 'rejected'
+export type ThemePreference = 'light' | 'dark'
+export type ProfileVisibility = 'public' | 'private'
 
 export type ViewerDTO = {
   userId: string
@@ -28,6 +33,10 @@ export type ProfileDTO = {
   backlogs: number | null
   linkedinUrl: string | null
   githubUrl: string | null
+  profileVisibility: ProfileVisibility
+  showGroupMemberships: boolean
+  themePreference: ThemePreference
+  defaultGroupVisibility: CommunityVisibility
   onboardingCompletedAt: string | null
   createdAt: string
   updatedAt: string
@@ -130,3 +139,74 @@ export type StudentDashboardDTO = {
 }
 
 export type SignedDocumentUrlDTO = { signedUrl: string; expiresAt: string }
+
+export type SettingsDTO = {
+  profileVisibility: ProfileVisibility
+  showGroupMemberships: boolean
+  themePreference: ThemePreference
+  defaultGroupVisibility: CommunityVisibility
+}
+
+export type CommunityGroupDTO = {
+  id: string
+  name: string
+  slug: string
+  description: string
+  visibility: CommunityVisibility
+  ownerId: string
+  ownerName: string
+  memberCount: number
+  viewerRole: CommunityMemberRole | null
+  viewerStatus: CommunityMemberStatus | null
+  pendingCount: number
+  createdAt: string
+}
+
+export type CommunityMemberDTO = {
+  userId: string
+  fullName: string
+  avatarUrl: string | null
+  role: CommunityMemberRole
+  status: CommunityMemberStatus
+  requestedAt: string
+  joinedAt: string | null
+}
+
+export type CommunityMessageDTO = {
+  id: string
+  groupId: string
+  authorId: string
+  authorName: string
+  authorAvatarUrl: string | null
+  replyToId: string | null
+  body: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type CommunityGroupDetailDTO = CommunityGroupDTO & {
+  members: CommunityMemberDTO[]
+  messages: CommunityMessageDTO[]
+}
+
+export type ProfileGraphNodeDTO = {
+  id: string
+  label: string
+  role: AppRole
+  branch: string | null
+  graduationYear: number | null
+  avatarUrl: string | null
+  groupCount: number
+  isViewer: boolean
+}
+
+export type ProfileGraphEdgeDTO = {
+  source: string
+  target: string
+  sharedGroups: number
+}
+
+export type ProfileGraphDTO = {
+  nodes: ProfileGraphNodeDTO[]
+  edges: ProfileGraphEdgeDTO[]
+}
