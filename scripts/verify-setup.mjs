@@ -3,7 +3,7 @@ import { loadEnvFile } from "node:process";
 try {
   loadEnvFile(".env.local");
 } catch {
-  // Environment values may be supplied by CI instead of a local file.
+  // ci may provide environment values without a local file.
 }
 
 const expected = [

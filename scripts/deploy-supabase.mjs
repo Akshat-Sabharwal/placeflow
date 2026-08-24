@@ -6,7 +6,7 @@ import { loadEnvFile } from "node:process";
 try {
   loadEnvFile(".env.local");
 } catch {
-  // Environment values may be supplied by CI instead of a local file.
+  // ci may provide environment values without a local file.
 }
 
 const required = [
@@ -26,9 +26,7 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-// This secret is internal to the database-to-Edge-Function hop. Generate it
-// for each provisioning run when the operator has not supplied one, then pass
-// the same value to Supabase Vault and the Edge Function environment.
+// this secret protects the database-to-function webhook.
 if (!process.env.PLACEMENT_WEBHOOK_SECRET?.trim()) {
   process.env.PLACEMENT_WEBHOOK_SECRET = randomBytes(32).toString("base64url");
   console.log("Generated an internal placement webhook secret for this deployment.");
@@ -52,6 +50,28 @@ function run(args, options = {}) {
   return result.stdout;
 }
 
+function sqlLiteral(value) {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
+function syncVaultSecret(name, value) {
+  const sql = `
+do $placeflow$
+declare
+  target_id uuid;
+begin
+  select id into target_id from vault.secrets where name = ${sqlLiteral(name)} limit 1;
+  if target_id is null then
+    perform vault.create_secret(${sqlLiteral(value)}, ${sqlLiteral(name)});
+  else
+    perform vault.update_secret(target_id, ${sqlLiteral(value)}, ${sqlLiteral(name)});
+  end if;
+end;
+$placeflow$;
+`;
+  run(["db", "query", "--linked", sql]);
+}
+
 console.log("Linking the Supabase project…");
 run([
   "link",
@@ -64,6 +84,10 @@ run([
 
 console.log("Applying database migrations…");
 run(["db", "push", "--linked", "--include-all"]);
+
+console.log("Synchronizing database webhook secrets…");
+syncVaultSecret("placeflow_project_url", process.env.NEXT_PUBLIC_SUPABASE_URL);
+syncVaultSecret("placement_webhook_secret", process.env.PLACEMENT_WEBHOOK_SECRET);
 
 console.log("Installing Edge Function secrets…");
 run([

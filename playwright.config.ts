@@ -1,4 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
+import { loadEnvFile } from "node:process";
+
+try {
+  loadEnvFile(".env.local");
+} catch {}
+
+const productionServer = process.env.PLAYWRIGHT_PRODUCTION === "true";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -11,9 +18,10 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: "npm run dev",
+    command: productionServer ? "npm run build && npm start" : "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
+    timeout: 180_000,
     env: {
       NEXT_PUBLIC_SUPABASE_URL:
         process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://example.supabase.co",
@@ -26,7 +34,8 @@ export default defineConfig({
     },
   },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    { name: "desktop", testMatch: "public-flow.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    { name: "mobile", testMatch: "public-flow.spec.ts", use: { ...devices["Pixel 7"] } },
+    { name: "authenticated", testMatch: "authenticated-flow.spec.ts", use: { ...devices["Desktop Chrome"] } },
   ],
 });

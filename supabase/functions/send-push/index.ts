@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
-// @ts-expect-error Deno Edge imports use explicit TypeScript extensions.
+// @ts-expect-error deno edge imports use explicit typescript extensions.
 import { classifyWebhook, type WebhookPayload } from './events.ts'
 
 declare const Deno: {

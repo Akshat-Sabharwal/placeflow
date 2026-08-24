@@ -22,7 +22,7 @@ export const updateProfileSchema = z
 const driveFieldsSchema = z.object({
   companyName: trimmed(1, 160),
   jobRole: trimmed(1, 160),
-  description: z.string().trim().max(10000).default(''),
+  description: z.string().trim().max(10000),
   location: z.union([z.string().trim().max(200), z.literal(''), z.null()]).optional(),
   packageText: z.union([z.string().trim().max(200), z.literal(''), z.null()]).optional(),
   eligibleBranches: z

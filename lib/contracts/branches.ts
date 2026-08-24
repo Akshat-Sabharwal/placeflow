@@ -1,4 +1,4 @@
-/** Suggestions only; institutions may use other branch names. */
+/** common suggestions; custom branch names still work. */
 export const BRANCH_SUGGESTIONS = [
   'CSE',
   'IT',

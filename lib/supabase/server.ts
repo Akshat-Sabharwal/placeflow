@@ -16,7 +16,7 @@ export async function createClient() {
         try {
           cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
         } catch {
-          // Server Components cannot write response cookies; Proxy performs refresh.
+          // page refresh cookies are written by the proxy.
         }
       },
     },

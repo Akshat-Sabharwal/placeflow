@@ -6,8 +6,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Server Components need Proxy to persist refreshed cookies. Route Handlers
-  // can write their own refresh cookies, so running Proxy for /api would verify
-  // every API request twice.
+  // page requests use this layer to persist refreshed cookies.
   matcher: ['/student/:path*', '/coordinator/:path*', '/post-auth'],
 }

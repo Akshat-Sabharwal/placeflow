@@ -91,10 +91,7 @@ for each row execute function private.guard_drive_status_transition();
 create trigger applications_guard_status before update of status on public.applications
 for each row execute function private.guard_application_status_transition();
 
--- Source-controlled database webhook. Deployment automation stores the project URL
--- as `placeflow_project_url` and the shared secret as `placement_webhook_secret`
--- in Supabase Vault. Until both exist, workflow writes still succeed and polling
--- remains authoritative; only advisory push is skipped.
+-- the webhook is optional; polling remains authoritative when secrets are absent.
 create or replace function private.dispatch_placeflow_webhook()
 returns trigger
 language plpgsql
