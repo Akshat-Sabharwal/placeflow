@@ -18,5 +18,5 @@ export default function CoordinatorHomePage() {
 }
 
 function Summary({ icon: Icon, label, value }: { icon: typeof BriefcaseBusiness; label: string; value: number }) {
-  return <Box bg="white" border="1px solid" borderColor={colors.line} borderRadius="16px" p="5"><Box color={colors.signal}><Icon size={20} /></Box><Text color={colors.muted} fontSize="sm" mt="6">{label}</Text><Text fontSize="3xl" fontWeight="800" mt="1">{value}</Text></Box>;
+  return <Box bg={colors.surface} border="1px solid" borderColor={colors.line} borderRadius="16px" p="5"><Box color={colors.signal}><Icon size={20} /></Box><Text color={colors.muted} fontSize="sm" mt="6">{label}</Text><Text fontSize="3xl" fontWeight="800" mt="1">{value}</Text></Box>;
 }

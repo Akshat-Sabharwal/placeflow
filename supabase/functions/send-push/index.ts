@@ -77,14 +77,21 @@ Deno.serve(async (request: Request) => {
       }
     } else {
       const drive = event.record
+      const { data: creator } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', drive.created_by)
+        .maybeSingle()
+      const demoDrive = creator?.email?.endsWith('@placeflow.demo') ?? false
       const { data: studentRoles, error: roleError } = await supabase.from('user_roles').select('user_id').eq('role', 'student')
       if (roleError) throw roleError
       const ids = (studentRoles ?? []).map((role) => role.user_id)
       const { data: profiles, error: profileError } = ids.length
-        ? await supabase.from('profiles').select('id,branch,graduation_year,cgpa,backlogs,onboarding_completed_at').in('id', ids)
+        ? await supabase.from('profiles').select('id,email,branch,graduation_year,cgpa,backlogs,onboarding_completed_at').in('id', ids)
         : { data: [], error: null }
       if (profileError) throw profileError
       recipients = (profiles ?? []).filter((profile) =>
+        (!demoDrive || profile.email.endsWith('@placeflow.demo')) &&
         profile.onboarding_completed_at && profile.branch && profile.graduation_year !== null &&
         profile.cgpa !== null && profile.backlogs !== null &&
         (drive.eligible_branches as string[]).some((branch) => normalizeBranch(branch) === normalizeBranch(profile.branch)) &&

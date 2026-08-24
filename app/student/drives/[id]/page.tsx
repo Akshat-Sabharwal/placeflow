@@ -57,19 +57,19 @@ export default function StudentDriveDetailPage() {
       </Flex>
       <Grid mt="8" templateColumns={{ base: "1fr", lg: "1.25fr .75fr" }} gap="5">
         <Box>
-          <Box bg="white" border="1px solid" borderColor={colors.line} borderRadius="18px" p={{ base: "5", md: "7" }}>
+          <Box bg={colors.surface} border="1px solid" borderColor={colors.line} borderRadius="18px" p={{ base: "5", md: "7" }}>
             <Heading as="h2" fontSize="xl">About the role</Heading>
             <Text whiteSpace="pre-wrap" mt="4" color={colors.muted} lineHeight="1.7">{drive.description || "No additional description was provided."}</Text>
             <Grid mt="7" templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)" }} gap="4"><Fact icon={CalendarDays} label="Apply by" value={formatDateTime(drive.registrationDeadline)} /><Fact icon={CalendarDays} label="Drive date" value={formatDateTime(drive.driveDate)} /><Fact icon={MapPin} label="Location" value={drive.location ?? "To be announced"} /><Fact icon={WalletCards} label="Package" value={drive.packageText ?? "Not specified"} /></Grid>
           </Box>
-          <Box mt="5" bg="white" border="1px solid" borderColor={colors.line} borderRadius="18px" p={{ base: "5", md: "7" }}>
+          <Box mt="5" bg={colors.surface} border="1px solid" borderColor={colors.line} borderRadius="18px" p={{ base: "5", md: "7" }}>
             <Heading as="h2" fontSize="xl">Eligibility requirements</Heading>
             <Grid mt="5" templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)" }} gap="4"><Requirement label="Branches" value={drive.eligibleBranches.join(", ")} /><Requirement label="Graduation years" value={drive.eligibleYears.join(", ")} /><Requirement label="Minimum CGPA" value={drive.minimumCgpa.toString()} /><Requirement label="Maximum backlogs" value={drive.maximumBacklogs.toString()} /></Grid>
           </Box>
         </Box>
         <Box>
           <EligibilityPanel eligible={eligible} reasons={drive.eligibility?.reasons ?? []} />
-          <Box mt="5" bg="white" border="1px solid" borderColor={colors.line} borderRadius="18px" p="5">
+          <Box mt="5" bg={colors.surface} border="1px solid" borderColor={colors.line} borderRadius="18px" p="5">
             <Heading as="h2" fontSize="lg">Your application</Heading>
             {drive.alreadyApplied ? (
               <Alert.Root status="success" mt="4" borderRadius="12px"><Alert.Indicator /><Alert.Content><Alert.Title>Application submitted</Alert.Title><Alert.Description>Track the latest outcome from Applications.</Alert.Description></Alert.Content></Alert.Root>

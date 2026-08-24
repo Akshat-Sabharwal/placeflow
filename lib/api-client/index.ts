@@ -5,6 +5,7 @@ export * from "./documents";
 export * from "./drives";
 export * from "./errors";
 export * from "./notifications";
+export * from "./onboarding";
 export * from "./profile";
 export * from "./push";
 export * from "./community";

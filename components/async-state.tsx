@@ -9,7 +9,7 @@ export function PageSkeleton({ rows = 3 }: { rows?: number }) {
 }
 
 export function EmptyState({ title, description, action, icon: Icon = Inbox }: { title: string; description: string; action?: ReactNode; icon?: typeof Inbox }) {
-  return <Flex border="1px dashed" borderColor={colors.line} borderRadius="18px" minH="280px" bg="white" p="8" align="center" justify="center" textAlign="center" direction="column"><Box color={colors.signal} mb="5"><Icon size={30} /></Box><Heading as="h2" fontSize="xl">{title}</Heading><Text mt="2" color={colors.muted} maxW="430px">{description}</Text>{action && <Box mt="6">{action}</Box>}</Flex>;
+  return <Flex border="1px dashed" borderColor={colors.line} borderRadius="18px" minH="280px" bg={colors.surface} p="8" align="center" justify="center" textAlign="center" direction="column"><Box color={colors.signal} mb="5"><Icon size={30} /></Box><Heading as="h2" fontSize="xl">{title}</Heading><Text mt="2" color={colors.muted} maxW="430px">{description}</Text>{action && <Box mt="6">{action}</Box>}</Flex>;
 }
 
 export function ApiErrorAlert({ error, onRetry, title = "We couldn't load this yet." }: { error: unknown; onRetry?: () => void; title?: string }) {

@@ -60,6 +60,17 @@
   box-sizing: border-box;
 }
 
+body {
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable="true"],
+[data-copyable] {
+  user-select: text;
+}
+
 html {
   background: var(--paper);
   color: var(--ink);
@@ -89,6 +100,12 @@ textarea {
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 a {
@@ -97,12 +114,17 @@ a {
 
 ::selection {
   background: var(--signal);
-  color: white;
+  color: var(--ink);
 }
 
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
+}
+
+.graph-node:focus-visible circle {
+  stroke: var(--focus);
+  stroke-width: 5px;
 }
 
 .skip-link {

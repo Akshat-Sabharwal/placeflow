@@ -7,34 +7,9 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // keeps the generated client version aligned with postgrest.
+  // lets createclient pick the generated database options automatically
   __InternalSupabase: {
     PostgrestVersion: "14.15"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
   }
   public: {
     Tables: {
@@ -225,6 +200,94 @@ export type Database = {
           },
         ]
       }
+      document_extractions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          document_id: string
+          error_code: string | null
+          error_message: string | null
+          extracted_fields: Json
+          extractor_name: string
+          extractor_version: string | null
+          field_confidence: Json
+          id: string
+          onboarding_record_id: string
+          raw_output: Json | null
+          source_mime_type: string
+          source_original_name: string
+          source_sha256: string | null
+          source_size_bytes: number
+          status: Database["public"]["Enums"]["extraction_status"]
+          student_id: string
+          trust: Database["public"]["Enums"]["extraction_trust"]
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          document_id: string
+          error_code?: string | null
+          error_message?: string | null
+          extracted_fields?: Json
+          extractor_name: string
+          extractor_version?: string | null
+          field_confidence?: Json
+          id?: string
+          onboarding_record_id: string
+          raw_output?: Json | null
+          source_mime_type: string
+          source_original_name: string
+          source_sha256?: string | null
+          source_size_bytes: number
+          status?: Database["public"]["Enums"]["extraction_status"]
+          student_id: string
+          trust?: Database["public"]["Enums"]["extraction_trust"]
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          document_id?: string
+          error_code?: string | null
+          error_message?: string | null
+          extracted_fields?: Json
+          extractor_name?: string
+          extractor_version?: string | null
+          field_confidence?: Json
+          id?: string
+          onboarding_record_id?: string
+          raw_output?: Json | null
+          source_mime_type?: string
+          source_original_name?: string
+          source_sha256?: string | null
+          source_size_bytes?: number
+          status?: Database["public"]["Enums"]["extraction_status"]
+          student_id?: string
+          trust?: Database["public"]["Enums"]["extraction_trust"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_extractions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_extractions_onboarding_record_id_fkey"
+            columns: ["onboarding_record_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_extractions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           id: string
@@ -395,6 +458,85 @@ export type Database = {
           },
         ]
       }
+      onboarding_records: {
+        Row: {
+          accepted_extraction_id: string | null
+          created_at: string
+          id: string
+          source_document_id: string | null
+          staged_backlogs: number | null
+          staged_branch: string | null
+          staged_cgpa: number | null
+          staged_full_name: string | null
+          staged_github_url: string | null
+          staged_graduation_year: number | null
+          staged_linkedin_url: string | null
+          staged_roll_number: string | null
+          status: Database["public"]["Enums"]["onboarding_status"]
+          student_id: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_extraction_id?: string | null
+          created_at?: string
+          id?: string
+          source_document_id?: string | null
+          staged_backlogs?: number | null
+          staged_branch?: string | null
+          staged_cgpa?: number | null
+          staged_full_name?: string | null
+          staged_github_url?: string | null
+          staged_graduation_year?: number | null
+          staged_linkedin_url?: string | null
+          staged_roll_number?: string | null
+          status?: Database["public"]["Enums"]["onboarding_status"]
+          student_id: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_extraction_id?: string | null
+          created_at?: string
+          id?: string
+          source_document_id?: string | null
+          staged_backlogs?: number | null
+          staged_branch?: string | null
+          staged_cgpa?: number | null
+          staged_full_name?: string | null
+          staged_github_url?: string | null
+          staged_graduation_year?: number | null
+          staged_linkedin_url?: string | null
+          staged_roll_number?: string | null
+          status?: Database["public"]["Enums"]["onboarding_status"]
+          student_id?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_accepted_extraction_fkey"
+            columns: ["accepted_extraction_id"]
+            isOneToOne: false
+            referencedRelation: "document_extractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_records_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -522,7 +664,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      submit_onboarding_record: {
+        Args: {
+          p_expected_updated_at: string
+          p_record_id: string
+          p_student_id: string
+        }
+        Returns: {
+          avatar_url: string | null
+          backlogs: number | null
+          branch: string | null
+          cgpa: number | null
+          created_at: string
+          default_group_visibility: Database["public"]["Enums"]["community_visibility"]
+          email: string
+          full_name: string | null
+          github_url: string | null
+          graduation_year: number | null
+          id: string
+          linkedin_url: string | null
+          onboarding_completed_at: string | null
+          primary_provider: string | null
+          profile_visibility: Database["public"]["Enums"]["profile_visibility"]
+          roll_number: string | null
+          show_group_memberships: boolean
+          theme_preference: Database["public"]["Enums"]["theme_preference"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       app_role: "student" | "coordinator"
@@ -537,6 +712,15 @@ export type Database = {
         | "registration_closed"
         | "ongoing"
         | "completed"
+        | "cancelled"
+      extraction_status: "pending" | "processing" | "succeeded" | "failed"
+      extraction_trust: "client_asserted" | "server_verified"
+      onboarding_status:
+        | "draft"
+        | "extraction_pending"
+        | "review_required"
+        | "ready"
+        | "submitted"
         | "cancelled"
       profile_visibility: "public" | "private"
       theme_preference: "light" | "dark"
@@ -665,9 +849,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["student", "coordinator"],
@@ -682,6 +863,16 @@ export const Constants = {
         "registration_closed",
         "ongoing",
         "completed",
+        "cancelled",
+      ],
+      extraction_status: ["pending", "processing", "succeeded", "failed"],
+      extraction_trust: ["client_asserted", "server_verified"],
+      onboarding_status: [
+        "draft",
+        "extraction_pending",
+        "review_required",
+        "ready",
+        "submitted",
         "cancelled",
       ],
       profile_visibility: ["public", "private"],

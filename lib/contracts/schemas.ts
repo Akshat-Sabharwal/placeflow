@@ -19,6 +19,59 @@ export const updateProfileSchema = z
   })
   .strict()
 
+const extractedOnboardingFieldsSchema = z
+  .object({
+    fullName: trimmed(1, 120).optional(),
+    rollNumber: trimmed(1, 64).optional(),
+    branch: trimmed(1, 64).transform(normalizeBranch).optional(),
+    graduationYear: z.number().int().min(2000).max(2100).optional(),
+    cgpa: z.number().min(0).max(10).optional(),
+    backlogs: z.number().int().min(0).max(99).optional(),
+    linkedinUrl: optionalUrl,
+    githubUrl: optionalUrl,
+  })
+  .strict()
+  .refine((value) => Object.values(value).some((field) => field !== undefined), {
+    message: 'At least one extracted field is required.',
+  })
+
+const onboardingFieldNameSchema = z.enum([
+  'fullName',
+  'rollNumber',
+  'branch',
+  'graduationYear',
+  'cgpa',
+  'backlogs',
+  'linkedinUrl',
+  'githubUrl',
+])
+
+export const createOnboardingExtractionSchema = z
+  .object({
+    documentId: uuidSchema,
+    extractorName: z.enum(['pdfjs-dist', 'tesseract.js', 'manual', 'hybrid']),
+    extractorVersion: trimmed(1, 80).optional(),
+    sourceSha256: z.string().trim().toLowerCase().regex(/^[0-9a-f]{64}$/).optional(),
+    extractedFields: extractedOnboardingFieldsSchema,
+    fieldConfidence: z
+      .partialRecord(onboardingFieldNameSchema, z.number().min(0).max(1))
+      .default({}),
+  })
+  .strict()
+
+export const stageOnboardingSchema = z
+  .object({
+    recordId: uuidSchema,
+    extractionId: uuidSchema,
+    expectedUpdatedAt: isoDateTime,
+    fields: updateProfileSchema,
+  })
+  .strict()
+
+export const submitOnboardingSchema = z
+  .object({ recordId: uuidSchema, expectedUpdatedAt: isoDateTime })
+  .strict()
+
 const driveFieldsSchema = z.object({
   companyName: trimmed(1, 160),
   jobRole: trimmed(1, 160),

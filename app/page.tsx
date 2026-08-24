@@ -72,7 +72,7 @@ export default function Home() {
         left="3"
         zIndex="100"
         bg={colors.ink}
-        color="white"
+        color={colors.paper}
         px="4"
         py="2"
         borderRadius="md"
@@ -103,10 +103,10 @@ export default function Home() {
             <Button
               asChild
               bg={colors.ink}
-              color="white"
+              color={colors.paper}
               borderRadius="full"
               px="5"
-              _hover={{ bg: "#30312F" }}
+              _hover={{ bg: colors.lineStrong }}
             >
               <Link href="/login">
                 Sign in <ArrowRight size={16} />
@@ -168,7 +168,7 @@ export default function Home() {
                 color={colors.ink}
                 borderRadius="full"
                 px="7"
-                _hover={{ bg: "#FF6A49" }}
+                _hover={{ bg: colors.signalDark }}
               >
                 <Link href="/login">
                   Enter PlaceFlow <ArrowRight size={18} />
@@ -191,7 +191,7 @@ export default function Home() {
             aria-label="PlaceFlow workflow: publish, apply, decide"
             border="1px solid"
             borderColor={colors.ink}
-            bg="white"
+            bg={colors.surface}
             p={{ base: "5", md: "7" }}
             borderRadius="24px"
             boxShadow={`10px 10px 0 ${colors.signal}`}
@@ -268,7 +268,7 @@ export default function Home() {
           as="section"
           aria-labelledby="workflow-title"
           bg={colors.ink}
-          color="white"
+          color={colors.paper}
           py={{ base: "16", md: "24" }}
         >
           <Box maxW="1200px" mx="auto" px={{ base: "5", md: "8" }}>
@@ -300,7 +300,7 @@ export default function Home() {
                 <Box
                   key={item.number}
                   border="1px solid"
-                  borderColor="#41413E"
+                  borderColor={colors.lineStrong}
                   p="6"
                   borderRadius="18px"
                   minH="210px"
@@ -311,7 +311,7 @@ export default function Home() {
                   <Heading as="h3" mt="10" fontSize="2xl">
                     {item.title}
                   </Heading>
-                  <Text mt="2" color="#BEBEB8" lineHeight="1.6">
+                  <Text mt="2" color={colors.muted} lineHeight="1.6">
                     {item.copy}
                   </Text>
                 </Box>
@@ -342,7 +342,7 @@ export default function Home() {
               {principles.map(({ icon: Icon, title, copy }) => (
                 <Box
                   key={title}
-                  bg="white"
+                  bg={colors.surface}
                   border="1px solid"
                   borderColor={colors.line}
                   borderRadius="18px"
@@ -386,14 +386,14 @@ export default function Home() {
               >
                 Ready when the next drive opens.
               </Heading>
-              <Text mt="2" color="#541B0E">
+              <Text mt="2" color={colors.ink}>
                 Sign in with your existing Google or GitHub account.
               </Text>
             </Box>
             <Button
               asChild
               size="lg"
-              bg="white"
+              bg={colors.surface}
               color={colors.ink}
               borderRadius="full"
               px="7"

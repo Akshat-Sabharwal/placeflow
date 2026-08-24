@@ -5,6 +5,7 @@ import {
   createCommunityGroupSchema,
   createCommunityMessageSchema,
   createDriveSchema,
+  createOnboardingExtractionSchema,
   deletePushSubscriptionSchema,
   documentMetadataSchema,
   driveListQuerySchema,
@@ -14,6 +15,8 @@ import {
   updateSettingsSchema,
   updateDriveSchema,
   updateProfileSchema,
+  stageOnboardingSchema,
+  submitOnboardingSchema,
 } from './schemas'
 
 const validProfile = {
@@ -156,5 +159,51 @@ describe('request contracts', () => {
     expect(pushSubscriptionSchema.safeParse({ endpoint, keys: { p256dh: 'short', auth: 'short' } }).success).toBe(false)
     expect(deletePushSubscriptionSchema.safeParse({ endpoint }).success).toBe(true)
     expect(deletePushSubscriptionSchema.safeParse({ endpoint: 'not-a-url' }).success).toBe(false)
+  })
+
+  it('accepts sparse client-assisted extraction data and normalizes known fields', () => {
+    const result = createOnboardingExtractionSchema.parse({
+      documentId: '6df2f929-557b-4f68-bb4d-30c41c3ac777',
+      extractorName: 'tesseract.js',
+      extractorVersion: '7.0.0',
+      sourceSha256: 'A'.repeat(64),
+      extractedFields: { fullName: 'A Student', branch: ' computer   science ' },
+      fieldConfidence: { fullName: 0.98, branch: 0.75 },
+    })
+    expect(result.extractedFields.branch).toBe('COMPUTER SCIENCE')
+    expect(result.sourceSha256).toBe('a'.repeat(64))
+  })
+
+  it.each([
+    { extractedFields: {} },
+    { extractedFields: { role: 'coordinator' } },
+    { extractedFields: { cgpa: 11 } },
+    { extractedFields: { fullName: 'A Student' }, fieldConfidence: { fullName: 1.01 } },
+    { extractedFields: { fullName: 'A Student' }, fieldConfidence: { role: 1 } },
+    { extractedFields: { fullName: 'A Student' }, extractorName: 'remote-ocr' },
+    { extractedFields: { fullName: 'A Student' }, sourceSha256: 'not-a-hash' },
+    { extractedFields: { fullName: 'A Student' }, trust: 'server_verified' },
+  ])('rejects untrusted or invalid extraction input %#', (override) => {
+    const input = {
+      documentId: '6df2f929-557b-4f68-bb4d-30c41c3ac777',
+      extractorName: 'pdfjs-dist',
+      ...override,
+    }
+    expect(createOnboardingExtractionSchema.safeParse(input).success).toBe(false)
+  })
+
+  it('requires optimistic versions for staging and submission', () => {
+    const recordId = '6df2f929-557b-4f68-bb4d-30c41c3ac777'
+    const extractionId = 'e0b152ab-05e5-42f4-95e9-1cb0c8dc114c'
+    const expectedUpdatedAt = '2026-08-24T10:00:00.000Z'
+    expect(stageOnboardingSchema.safeParse({
+      recordId,
+      extractionId,
+      expectedUpdatedAt,
+      fields: validProfile,
+    }).success).toBe(true)
+    expect(stageOnboardingSchema.safeParse({ recordId, extractionId, fields: validProfile }).success).toBe(false)
+    expect(submitOnboardingSchema.safeParse({ recordId, expectedUpdatedAt }).success).toBe(true)
+    expect(submitOnboardingSchema.safeParse({ recordId }).success).toBe(false)
   })
 })

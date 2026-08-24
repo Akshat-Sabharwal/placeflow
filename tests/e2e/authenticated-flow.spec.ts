@@ -8,7 +8,38 @@ const baseURL = 'http://localhost:3000'
 const runId = `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`
 const company = `Orbit ${runId}`
 const rollNumber = `PF-${runId}`.slice(0, 60)
-const pdf = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n')
+
+function makePdf(lines: string[]) {
+  const escaped = lines.map((line) => line.replaceAll('\\', '\\\\').replaceAll('(', '\\(').replaceAll(')', '\\)'))
+  const stream = `BT /F1 12 Tf 16 TL 72 720 Td ${escaped.map((line) => `(${line}) Tj T*`).join(' ')} ET`
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`,
+  ]
+  let body = '%PDF-1.4\n'
+  const offsets = [0]
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.byteLength(body))
+    body += `${index + 1} 0 obj\n${object}\nendobj\n`
+  })
+  const xref = Buffer.byteLength(body)
+  body += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`
+  body += offsets.slice(1).map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')
+  body += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`
+  return Buffer.from(body)
+}
+
+const pdf = makePdf([
+  'Full Name: Test Student',
+  `Roll Number: ${rollNumber}`,
+  'Branch: CSE',
+  'Graduation Year: 2027',
+  'CGPA: 8.75',
+  'Backlogs: 0',
+])
 
 const waitForHydration = (page: import('@playwright/test').Page) =>
   page.waitForFunction(() => document.documentElement.dataset.hydrated === 'true')
@@ -21,6 +52,7 @@ let studentContext: BrowserContext
 let outsiderContext: BrowserContext
 let driveId = ''
 let documentId = ''
+let onboardingDocumentId = ''
 let storagePath = ''
 let applicationId = ''
 let publicGroupId = ''
@@ -72,6 +104,12 @@ test('enforces authentication, role boundaries, origin checks, and validation en
     const coordinatorProfile = await coordinatorContext.request.patch('/api/profile', { data: {} })
     expect(coordinatorProfile.status()).toBe(403)
     expect(await coordinatorProfile.json()).toMatchObject({ error: { code: 'FORBIDDEN' } })
+
+    const studentProfile = await studentContext.request.patch('/api/profile', {
+      data: { fullName: 'Direct edit attempt' },
+    })
+    expect(studentProfile.status()).toBe(403)
+    expect(await studentProfile.json()).toMatchObject({ error: { code: 'PROFILE_LOCKED' } })
   })
 
   await test.step('cross-origin and malformed coordinator mutations fail before persistence', async () => {
@@ -96,16 +134,20 @@ test('completes the student and coordinator lifecycle with private blob and noti
   const studentPage = await studentContext.newPage()
   const coordinatorPage = await coordinatorContext.newPage()
 
-  await test.step('student profile validates as typed and completes onboarding', async () => {
+  await test.step('student imports a private source, reviews extracted fields, and locks onboarding', async () => {
     await studentPage.goto('/student/onboarding')
     await waitForHydration(studentPage)
-    const submit = studentPage.getByRole('button', { name: 'Complete profile' })
-    await expect(submit).toBeDisabled()
-    await studentPage.getByLabel('Roll number').fill(rollNumber)
-    await studentPage.getByLabel('Branch').fill(' cse ')
-    await studentPage.getByLabel('Graduation year').fill('2027')
+    await expect(studentPage.getByRole('heading', { name: 'Start with a source document.' })).toBeVisible()
+    await studentPage.locator('input[type="file"]').setInputFiles({
+      name: 'institution-record.pdf',
+      mimeType: 'application/pdf',
+      buffer: pdf,
+    })
+    await expect(studentPage.getByRole('heading', { name: 'Review and lock your profile' })).toBeVisible({ timeout: 60_000 })
+    const submit = studentPage.getByRole('button', { name: 'Confirm and lock profile' })
+    await expect(studentPage.getByLabel('Roll number')).toHaveValue(rollNumber)
+    await expect(studentPage.getByLabel('Branch')).toHaveValue('CSE')
     await studentPage.getByLabel('CGPA').fill('11')
-    await studentPage.getByLabel('Current backlogs').fill('0')
     await expect(submit).toBeDisabled()
     await studentPage.getByLabel('CGPA').fill('8.75')
     await studentPage.getByLabel('Full name').fill(student.name)
@@ -114,11 +156,22 @@ test('completes the student and coordinator lifecycle with private blob and noti
     await studentPage.getByLabel('Roll number').fill(rollNumber)
     await studentPage.getByLabel('Roll number').press('Tab')
     await expect(studentPage.getByLabel('Roll number')).toHaveValue(rollNumber)
-    await expect.poll(() => studentPage.getByLabel('Valid').count()).toBeGreaterThanOrEqual(5)
+    await expect.poll(() => studentPage.getByLabel('Valid').count()).toBeGreaterThanOrEqual(3)
     await expect(submit).toBeEnabled()
     await submit.click()
-    await expect(studentPage).toHaveURL(/\/student$/)
+    await expect(studentPage).toHaveURL(/\/student$/, { timeout: 30_000 })
     await expect(studentPage.getByText(`Hi, ${student.name.split(' ')[0]}.`)).toBeVisible()
+
+    const directProfileWrite = await student.client.from('profiles').update({ cgpa: 9.9 }).eq('id', student.id)
+    expect(directProfileWrite.error).not.toBeNull()
+    const directOnboardingRead = await student.client.from('onboarding_records').select('*')
+    expect(directOnboardingRead.error).not.toBeNull()
+    const onboarding = await studentContext.request.get('/api/onboarding')
+    expect(onboarding.ok()).toBe(true)
+    expect(await onboarding.json()).toMatchObject({ data: { record: { status: 'submitted' }, latestExtraction: { status: 'succeeded', trust: 'client_asserted' } } })
+    const sourceDocuments = await studentContext.request.get('/api/documents')
+    const sourceBody = await sourceDocuments.json()
+    onboardingDocumentId = sourceBody.data.find((item: { originalName: string }) => item.originalName === 'institution-record.pdf').id
   })
 
   await test.step('document selection rejects invalid files and uploads a private PDF', async () => {
@@ -135,12 +188,12 @@ test('completes the student and coordinator lifecycle with private blob and noti
     const response = await studentContext.request.get('/api/documents')
     expect(response.ok()).toBe(true)
     const body = await response.json()
-    expect(body.data).toHaveLength(1)
-    documentId = body.data[0].id
+    expect(body.data.length).toBeGreaterThanOrEqual(2)
+    documentId = body.data.find((item: { originalName: string }) => item.originalName === 'placeflow-resume.pdf').id
     const { data } = await admin.from('documents').select('storage_path').eq('id', documentId).single()
     storagePath = data!.storage_path
 
-    await studentPage.getByRole('button', { name: 'View' }).first().click()
+    await studentPage.getByRole('button', { name: 'View placeflow-resume.pdf' }).click()
     await expect(studentPage.getByRole('dialog')).toContainText('placeflow-resume.pdf')
     await expect(studentPage.locator('iframe[title="placeflow-resume.pdf"]')).toBeVisible()
     await studentPage.getByRole('button', { name: 'Close document viewer' }).click()
@@ -201,7 +254,7 @@ test('completes the student and coordinator lifecycle with private blob and noti
     await studentPage.goto('/student/drives')
     await studentPage.getByLabel('Search drives').fill(company)
     await expect(studentPage.getByRole('heading', { name: 'Platform Engineer' })).toBeVisible()
-    await studentPage.getByRole('link', { name: 'View drive' }).click()
+    await studentPage.getByRole('link', { name: new RegExp(`View Platform Engineer at ${company}`) }).click()
     await expect(studentPage).toHaveURL(new RegExp(`/student/drives/${driveId}$`), { timeout: 30_000 })
     await expect(studentPage.getByRole('heading', { name: 'You meet the eligibility rules' })).toBeVisible({ timeout: 30_000 })
     await studentPage.getByLabel('Resume').selectOption(documentId)
@@ -273,6 +326,10 @@ test('completes the student and coordinator lifecycle with private blob and noti
     expect(deleteInUse.status()).toBe(409)
     expect(await deleteInUse.json()).toMatchObject({ error: { code: 'DOCUMENT_IN_USE' } })
 
+    const deleteOnboardingSource = await studentContext.request.delete(`/api/documents/${onboardingDocumentId}`)
+    expect(deleteOnboardingSource.status()).toBe(409)
+    expect(await deleteOnboardingSource.json()).toMatchObject({ error: { code: 'DOCUMENT_IN_USE' } })
+
     const closeDrive = await coordinatorContext.request.patch(`/api/drives/${driveId}`, { data: { status: 'registration_closed' } })
     expect(closeDrive.ok()).toBe(true)
     expect((await closeDrive.json()).data).toMatchObject({
@@ -309,8 +366,7 @@ test('runs documents, public and private communities, profile graph, and setting
     expect(outsiderSigned.status()).toBe(404)
 
     await studentPage.goto('/student/documents')
-    const row = studentPage.getByText('placement-notes.txt').locator('xpath=ancestor::div[3]')
-    await row.getByRole('button', { name: 'View' }).click()
+    await studentPage.getByRole('button', { name: 'View placement-notes.txt' }).click()
     await expect(studentPage.locator('iframe[title="placement-notes.txt"]')).toBeVisible()
     await studentPage.getByRole('button', { name: 'Close document viewer' }).click()
   })
@@ -384,12 +440,13 @@ test('runs documents, public and private communities, profile graph, and setting
     const publicSettings = { profileVisibility: 'public', showGroupMemberships: true, themePreference: 'light', defaultGroupVisibility: 'private' }
     expect((await studentContext.request.patch('/api/settings', { data: publicSettings })).ok()).toBe(true)
     await coordinatorPage.goto('/coordinator/people')
-    await expect(coordinatorPage.getByRole('img', { name: 'Related public profile graph' })).toBeVisible()
+    await expect(coordinatorPage.getByRole('img', { name: 'Your direct public profile connections' })).toBeVisible()
     await expect(coordinatorPage.getByText(student.name).last()).toBeVisible()
     const graph = await coordinatorContext.request.get('/api/profiles/graph')
     const graphBody = await graph.json()
     expect(graphBody.data.nodes.some((node: { id: string }) => node.id === student.id)).toBe(true)
     expect(graphBody.data.edges.some((edge: { source: string; target: string }) => [edge.source, edge.target].includes(student.id) && [edge.source, edge.target].includes(coordinator.id))).toBe(true)
+    expect(graphBody.data.edges.every((edge: { source: string; target: string }) => [edge.source, edge.target].includes(coordinator.id))).toBe(true)
 
     const privateSettings = { ...publicSettings, profileVisibility: 'private' as const, showGroupMemberships: false, themePreference: 'dark' as const }
     expect((await studentContext.request.patch('/api/settings', { data: privateSettings })).ok()).toBe(true)

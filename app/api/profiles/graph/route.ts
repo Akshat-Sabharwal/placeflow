@@ -34,9 +34,22 @@ export async function GET() {
         edgeCount.set(key, (edgeCount.get(key) ?? 0) + 1)
       }
     }
+    const edges = [...edgeCount.entries()]
+      .map(([key, sharedGroups]) => {
+        const [source, target] = key.split(':')
+        return { source, target, sharedGroups }
+      })
+      .filter((edge) => edge.source === viewer.userId || edge.target === viewer.userId)
+    const adjacentIds = new Set([viewer.userId])
+    edges.forEach((edge) => {
+      adjacentIds.add(edge.source)
+      adjacentIds.add(edge.target)
+    })
     const result: ProfileGraphDTO = {
-      nodes: (profiles ?? []).map((profile) => ({ id: profile.id, label: profile.full_name ?? 'PlaceFlow member', role: roleMap.get(profile.id) ?? 'student', branch: profile.branch, graduationYear: profile.graduation_year, avatarUrl: profile.avatar_url, groupCount: groupCount.get(profile.id) ?? 0, isViewer: profile.id === viewer.userId })),
-      edges: [...edgeCount.entries()].map(([key, sharedGroups]) => { const [source, target] = key.split(':'); return { source, target, sharedGroups } }),
+      nodes: (profiles ?? [])
+        .filter((profile) => adjacentIds.has(profile.id))
+        .map((profile) => ({ id: profile.id, label: profile.full_name ?? 'PlaceFlow member', role: roleMap.get(profile.id) ?? 'student', branch: profile.branch, graduationYear: profile.graduation_year, avatarUrl: profile.avatar_url, groupCount: groupCount.get(profile.id) ?? 0, isViewer: profile.id === viewer.userId })),
+      edges,
     }
     return apiData(result, { headers: PRIVATE_NO_STORE_HEADERS })
   })

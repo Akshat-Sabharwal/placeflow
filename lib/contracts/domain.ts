@@ -13,6 +13,15 @@ export type CommunityMemberRole = 'owner' | 'moderator' | 'member'
 export type CommunityMemberStatus = 'pending' | 'active' | 'rejected'
 export type ThemePreference = 'light' | 'dark'
 export type ProfileVisibility = 'public' | 'private'
+export type OnboardingStatus =
+  | 'draft'
+  | 'extraction_pending'
+  | 'review_required'
+  | 'ready'
+  | 'submitted'
+  | 'cancelled'
+export type ExtractionStatus = 'pending' | 'processing' | 'succeeded' | 'failed'
+export type ExtractionTrust = 'client_asserted' | 'server_verified'
 
 export type ViewerDTO = {
   userId: string
@@ -40,6 +49,53 @@ export type ProfileDTO = {
   onboardingCompletedAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+export type OnboardingProfileFieldsDTO = {
+  fullName: string | null
+  rollNumber: string | null
+  branch: string | null
+  graduationYear: number | null
+  cgpa: number | null
+  backlogs: number | null
+  linkedinUrl: string | null
+  githubUrl: string | null
+}
+
+export type OnboardingRecordDTO = {
+  id: string
+  status: OnboardingStatus
+  sourceDocumentId: string | null
+  acceptedExtractionId: string | null
+  fields: OnboardingProfileFieldsDTO
+  submittedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type DocumentExtractionDTO = {
+  id: string
+  onboardingRecordId: string
+  documentId: string
+  status: ExtractionStatus
+  trust: ExtractionTrust
+  extractorName: string
+  extractorVersion: string | null
+  sourceOriginalName: string
+  sourceMimeType: string
+  sourceSizeBytes: number
+  sourceSha256: string | null
+  extractedFields: Partial<OnboardingProfileFieldsDTO>
+  fieldConfidence: Partial<Record<keyof OnboardingProfileFieldsDTO, number>>
+  errorCode: string | null
+  errorMessage: string | null
+  completedAt: string | null
+  createdAt: string
+}
+
+export type OnboardingSnapshotDTO = {
+  record: OnboardingRecordDTO | null
+  latestExtraction: DocumentExtractionDTO | null
 }
 
 export const ELIGIBILITY_REASONS = [

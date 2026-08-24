@@ -6,6 +6,7 @@ import { ApiErrorAlert, EmptyState, PageSkeleton, RefreshNotice } from './async-
 import { ConfirmDialog } from './confirm-dialog'
 import { EligibilityPanel } from './eligibility-panel'
 import { FormField } from './form-field'
+import { ProfileForm } from './profile-form'
 import { StatusBadge } from './status-badge'
 
 function renderUi(node: ReactNode) {
@@ -47,6 +48,13 @@ describe('shared interface components', () => {
     expect(screen.queryByLabelText('Valid')).not.toBeInTheDocument()
     rerender(<ChakraProvider value={defaultSystem}><FormField label="Branch" valid><Input /></FormField></ChakraProvider>)
     expect(screen.getByLabelText('Valid')).toBeVisible()
+  })
+
+  it('keeps missing onboarding numbers blank while preserving an extracted zero', () => {
+    renderUi(<ProfileForm prefill={{ fullName: 'Ada Lovelace', backlogs: 0 }} onReviewSubmit={() => undefined} />)
+    expect(screen.getByRole('spinbutton', { name: 'Graduation year' })).toHaveValue(null)
+    expect(screen.getByRole('spinbutton', { name: 'CGPA' })).toHaveValue(null)
+    expect(screen.getByRole('spinbutton', { name: 'Current backlogs' })).toHaveValue(0)
   })
 
   it('runs the confirm action and exposes a cancel action', () => {
