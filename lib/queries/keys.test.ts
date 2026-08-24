@@ -13,9 +13,11 @@ describe("client query contracts", () => {
   });
 
   it("uses the specified foreground polling intervals", () => {
-    expect(polling.drives).toBe(15_000);
-    expect(polling.applications).toBe(10_000);
-    expect(polling.applicants).toBe(5_000);
+    expect(polling.drives).toBe(60_000);
+    expect(polling.drive).toBe(30_000);
+    expect(polling.applications).toBe(30_000);
+    expect(polling.applicants).toBe(15_000);
+    expect(polling.notifications).toBe(60_000);
     expect(whenVisible(polling.drives)()).toBe(polling.drives);
   });
 });

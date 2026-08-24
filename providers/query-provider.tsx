@@ -13,7 +13,12 @@ function shouldRetry(failureCount: number, error: unknown) {
 export function QueryProvider({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
-      queries: { staleTime: 15_000, retry: shouldRetry, refetchOnReconnect: true, refetchOnWindowFocus: true },
+      queries: {
+        staleTime: 30_000,
+        retry: shouldRetry,
+        refetchOnReconnect: true,
+        refetchOnWindowFocus: false,
+      },
       mutations: { retry: false },
     },
   }));

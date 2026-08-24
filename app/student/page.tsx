@@ -16,8 +16,8 @@ import { StatusBadge } from "@/components/status-badge";
 
 export default function StudentHomePage() {
   const profile = useQuery({ queryKey: queryKeys.profile, queryFn: getProfile });
-  const drives = useQuery({ queryKey: queryKeys.drives({ home: true }), queryFn: () => getDrives(), refetchInterval: whenVisible(polling.drives) });
-  const applications = useQuery({ queryKey: queryKeys.myApplications({ home: true }), queryFn: getMyApplications, refetchInterval: whenVisible(polling.applications) });
+  const drives = useQuery({ queryKey: queryKeys.drives(), queryFn: () => getDrives(), refetchInterval: whenVisible(polling.drives) });
+  const applications = useQuery({ queryKey: queryKeys.myApplications(), queryFn: getMyApplications, refetchInterval: whenVisible(polling.applications) });
   if (profile.isLoading || drives.isLoading || applications.isLoading) return <PageSkeleton rows={4} />;
   const name = profile.data?.profile.fullName?.split(" ")[0] ?? "there";
   const open = drives.data?.filter((drive) => drive.status === "published" && drive.eligibility?.eligible).length ?? 0;

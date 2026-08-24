@@ -16,7 +16,7 @@ type Filter = "active" | "completed" | "cancelled" | "all";
 
 export default function CoordinatorDrivesPage() {
   const [filter, setFilter] = useState<Filter>("active");
-  const query = useQuery({ queryKey: queryKeys.drives({ coordinator: true }), queryFn: () => getDrives() });
+  const query = useQuery({ queryKey: queryKeys.drives(), queryFn: () => getDrives() });
   const drives = useMemo(() => (query.data ?? []).filter((drive) => filter === "all" || filter === "active" ? filter === "all" || !["completed", "cancelled"].includes(drive.status) : drive.status === filter), [filter, query.data]);
   if (query.isLoading) return <PageSkeleton rows={4} />;
   if (query.isError) return <ApiErrorAlert error={query.error} onRetry={() => query.refetch()} />;

@@ -6,7 +6,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
-  ],
+  // Server Components need Proxy to persist refreshed cookies. Route Handlers
+  // can write their own refresh cookies, so running Proxy for /api would verify
+  // every API request twice.
+  matcher: ['/student/:path*', '/coordinator/:path*', '/post-auth'],
 }
