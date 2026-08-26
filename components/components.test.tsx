@@ -7,7 +7,9 @@ import { ConfirmDialog } from './confirm-dialog'
 import { EligibilityPanel } from './eligibility-panel'
 import { FormField } from './form-field'
 import { ProfileForm } from './profile-form'
+import { createGraphLayout } from './profile-graph'
 import { StatusBadge } from './status-badge'
+import type { ProfileGraphDTO } from '@/lib/contracts/domain'
 
 function renderUi(node: ReactNode) {
   return render(<ChakraProvider value={defaultSystem}>{node}</ChakraProvider>)
@@ -65,6 +67,41 @@ describe('shared interface components', () => {
     expect(onConfirm).toHaveBeenCalledOnce()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeVisible()
     expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('keeps community regions and shared profile cards in separate layout slots', () => {
+    const nodes = Array.from({ length: 8 }, (_, index) => ({
+      id: `profile-${index}`,
+      label: `Profile ${index}`,
+      role: index === 0 ? 'coordinator' as const : 'student' as const,
+      branch: index === 0 ? null : 'CSE',
+      graduationYear: index === 0 ? null : 2027,
+      avatarUrl: null,
+      groupCount: index === 0 ? 4 : 2,
+      isViewer: index === 0,
+    }))
+    const graph = {
+      nodes,
+      edges: [],
+      groups: [
+        { id: 'group-1', name: 'Engineering', memberIds: ['profile-0', 'profile-1', 'profile-2', 'profile-3', 'profile-4'] },
+        { id: 'group-2', name: 'Placements', memberIds: ['profile-0', 'profile-3', 'profile-4', 'profile-5'] },
+        { id: 'group-3', name: 'Design', memberIds: ['profile-0', 'profile-1', 'profile-5', 'profile-6'] },
+        { id: 'group-4', name: 'Operations', memberIds: ['profile-0', 'profile-2', 'profile-6', 'profile-7'] },
+      ],
+    } satisfies ProfileGraphDTO
+    const layout = createGraphLayout(graph)
+    const overlaps = (first: { x: number; y: number; width: number; height: number }, second: { x: number; y: number; width: number; height: number }) =>
+      first.x < second.x + second.width && first.x + first.width > second.x && first.y < second.y + second.height && first.y + first.height > second.y
+    const regions = layout.regions.map(({ x, y, width, height }) => ({ x, y, width, height }))
+    const cards = layout.regions.flatMap((region) => region.placements.map((placement) => ({ x: placement.x, y: placement.y, width: 132, height: 58 })))
+    const hasOverlap = (rects: typeof regions) => rects.some((rect, index) => rects.slice(index + 1).some((candidate) => overlaps(rect, candidate)))
+
+    expect(layout.regions).toHaveLength(4)
+    expect(cards).toHaveLength(13)
+    expect(hasOverlap(regions)).toBe(false)
+    expect(hasOverlap(cards)).toBe(false)
+    expect(cards.every((card) => regions.some((region) => card.x >= region.x && card.y >= region.y && card.x + card.width <= region.x + region.width && card.y + card.height <= region.y + region.height))).toBe(true)
   })
 
   it('disables destructive dialog actions while pending', () => {

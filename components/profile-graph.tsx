@@ -10,16 +10,13 @@ import { queryKeys } from "@/lib/queries/keys";
 import { colors } from "@/lib/ui/tokens";
 import { ApiErrorAlert } from "@/components/async-state";
 
-const WIDTH = 920;
-const HEIGHT = 570;
+const WIDTH = 1040;
+const MIN_HEIGHT = 570;
 type Point = { x: number; y: number };
-type Interaction = { kind: "pan"; x: number; y: number; origin: Point } | { kind: "node"; id: string; x: number; y: number; origin: Point };
-
-function seeded(value: string) {
-  let hash = 2166136261;
-  for (const character of value) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
-  return (hash >>> 0) / 4294967295;
-}
+type Interaction = { x: number; y: number; origin: Point };
+type ProfilePlacement = { key: string; nodeId: string; x: number; y: number };
+type CommunityRegion = { id: string; name: string; index: number; x: number; y: number; width: number; height: number; placements: ProfilePlacement[] };
+type GraphLayout = { viewer: Point; regions: CommunityRegion[]; height: number };
 
 export function ProfileGraph() {
   const [search, setSearch] = useState("");
@@ -43,7 +40,7 @@ export function ProfileGraph() {
 
   if (query.isLoading) return <Flex minH="480px" align="center" justify="center"><Spinner /></Flex>;
   if (query.isError || !query.data) return <ApiErrorAlert error={query.error ?? new Error("Graph could not be loaded")} onRetry={() => query.refetch()} />;
-  const graphKey = `${visibleGraph.nodes.map((node) => node.id).join(":")}|${visibleGraph.edges.map((edge) => `${edge.source}-${edge.target}`).join(":")}`;
+  const graphKey = `${visibleGraph.nodes.map((node) => node.id).join(":")}|${visibleGraph.edges.map((edge) => `${edge.source}-${edge.target}`).join(":")}|${visibleGraph.groups.map((group) => `${group.id}:${group.memberIds.join(",")}`).join("|")}`;
   return <GraphCanvas key={graphKey} graph={visibleGraph} search={search} onSearch={setSearch} />;
 }
 
@@ -51,52 +48,67 @@ function GraphCanvas({ graph: visibleGraph, search, onSearch }: { graph: Profile
   const svgRef = useRef<SVGSVGElement>(null);
   const viewer = visibleGraph.nodes.find((node) => node.isViewer);
   const [selectedId, setSelectedId] = useState<string | null>(viewer?.id ?? null);
-  const [positions, setPositions] = useState<Map<string, Point>>(() => createPositions(visibleGraph));
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
   const [interaction, setInteraction] = useState<Interaction | null>(null);
+  const layout = useMemo(() => createGraphLayout(visibleGraph), [visibleGraph]);
+  const nodesById = useMemo(() => new Map(visibleGraph.nodes.map((node) => [node.id, node])), [visibleGraph.nodes]);
   const selected = visibleGraph.nodes.find((node) => node.id === selectedId) ?? visibleGraph.nodes.find((node) => node.isViewer) ?? null;
   const needle = search.trim().toLowerCase();
   const matchingIds = new Set(visibleGraph.nodes.filter((node) => !needle || `${node.label} ${node.role} ${node.branch ?? ""}`.toLowerCase().includes(needle)).map((node) => node.id));
-  const regions = groupRegions(visibleGraph, positions);
 
   function pointerMove(event: React.PointerEvent<SVGSVGElement>) {
     if (!interaction) return;
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return;
     const dx = (event.clientX - interaction.x) * (WIDTH / rect.width);
-    const dy = (event.clientY - interaction.y) * (HEIGHT / rect.height);
-    if (interaction.kind === "pan") setPan({ x: interaction.origin.x + dx, y: interaction.origin.y + dy });
-    else setPositions((current) => { const next = new Map(current); next.set(interaction.id, { x: interaction.origin.x + dx, y: interaction.origin.y + dy }); return next; });
+    const dy = (event.clientY - interaction.y) * (layout.height / rect.height);
+    setPan({ x: interaction.origin.x + dx, y: interaction.origin.y + dy });
   }
 
   return <Flex gap="5" direction={{ base: "column", xl: "row" }}>
-    <Box flex="1" bg={colors.surface} border="1px solid" borderColor={colors.line} borderRadius="18px" overflow="hidden" minH="480px" position="relative">
+    <Box flex="1" bg={colors.surface} border="1px solid" borderColor={colors.line} borderRadius="18px" overflowX="auto" overflowY="hidden" minH="480px" position="relative">
       <Flex position="absolute" top="4" left="4" right="4" zIndex="1" align={{ base: "stretch", md: "center" }} justify="space-between" gap="2" direction={{ base: "column", md: "row" }}>
-        <Flex align="center" gap="2" bg={colors.header} border="1px solid" borderColor={colors.line} borderRadius="full" px="3" py="2" fontSize="sm" color={colors.muted}><Hand size={15} />Drag nodes · drag the canvas to pan</Flex>
+        <Flex align="center" gap="2" bg={colors.header} border="1px solid" borderColor={colors.line} borderRadius="full" px="3" py="2" fontSize="sm" color={colors.muted}><Hand size={15} />Drag the canvas to pan · select a profile</Flex>
         <Box position="relative" w={{ base: "full", md: "260px" }}>
           <Box position="absolute" left="3" top="50%" transform="translateY(-50%)" color={colors.muted}><Search size={15} /></Box>
           <Input size="sm" bg={colors.header} borderRadius="full" pl="9" value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search people" aria-label="Search people in graph" />
         </Box>
       </Flex>
-      <svg ref={svgRef} role="img" aria-label="Your direct public profile connections" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} style={{ width: "100%", minWidth: 680, height: 570, touchAction: "none", cursor: interaction?.kind === "pan" ? "grabbing" : "grab" }} onPointerMove={pointerMove} onPointerUp={() => setInteraction(null)} onPointerCancel={() => setInteraction(null)}>
+      <svg ref={svgRef} role="img" aria-label="Your direct public profile connections" viewBox={`0 0 ${WIDTH} ${layout.height}`} style={{ width: "100%", minWidth: 760, height: layout.height, touchAction: "none", cursor: interaction ? "grabbing" : "grab" }} onPointerMove={pointerMove} onPointerUp={() => setInteraction(null)} onPointerCancel={() => setInteraction(null)}>
         <defs><pattern id="graph-dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.4" fill={colors.line} /></pattern></defs>
-        <rect width={WIDTH} height={HEIGHT} fill="url(#graph-dots)" onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); setInteraction({ kind: "pan", x: event.clientX, y: event.clientY, origin: pan }); }} />
+        <rect width={WIDTH} height={layout.height} fill="url(#graph-dots)" onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); setInteraction({ x: event.clientX, y: event.clientY, origin: pan }); }} />
         <g transform={`translate(${pan.x} ${pan.y})`}>
-          {regions.map((region) => {
+          {layout.regions.map((region) => {
             const tone = groupTones[region.index % groupTones.length];
-            return <g key={region.id} pointerEvents="none"><rect x={region.x} y={region.y} width={region.width} height={region.height} rx="36" fill={tone.fill} fillOpacity=".52" stroke={tone.stroke} strokeWidth="2" strokeDasharray="7 5" /><text x={region.x + 14} y={region.y + 22} fill={tone.stroke} fontSize="12" fontWeight="800">{truncate(region.name, 28)}</text></g>;
+            return <g key={`connection:${region.id}`} pointerEvents="none"><path d={`M ${layout.viewer.x} ${layout.viewer.y + 34} C ${layout.viewer.x} ${layout.viewer.y + 86}, ${region.x + region.width / 2} ${region.y - 34}, ${region.x + region.width / 2} ${region.y}`} fill="none" stroke={tone.stroke} strokeWidth="2" opacity=".58" /></g>;
           })}
-          {visibleGraph.edges.map((edge) => { const source = positions.get(edge.source); const target = positions.get(edge.target); if (!source || !target) return null; return <line key={`${edge.source}-${edge.target}`} x1={source.x} y1={source.y} x2={target.x} y2={target.y} stroke={colors.lineStrong ?? colors.line} strokeWidth={Math.min(5, 1.5 + edge.sharedGroups)} opacity=".82" />; })}
-          {visibleGraph.nodes.map((node) => {
-            const point = positions.get(node.id); if (!point) return null;
-            const active = selected?.id === node.id;
-            const matches = matchingIds.has(node.id);
-            return <g key={node.id} className="graph-node" role="button" tabIndex={0} aria-label={`${node.label}, ${node.role}`} onClick={() => setSelectedId(node.id)} onFocus={() => setSelectedId(node.id)} onPointerDown={(event) => { event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); setInteraction({ kind: "node", id: node.id, x: event.clientX, y: event.clientY, origin: point }); setSelectedId(node.id); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedId(node.id); } }} style={{ cursor: interaction?.kind === "node" && interaction.id === node.id ? "grabbing" : "grab" }}>
-              <circle cx={point.x} cy={point.y} r={node.isViewer ? 35 : 28} fill={node.isViewer ? colors.signal : active ? colors.infoSoft : colors.surface} stroke={active ? colors.info : colors.ink} strokeWidth={active ? 4 : 2} opacity={matches ? 1 : .24} />
-              <text x={point.x} y={point.y + 4} textAnchor="middle" fill={node.isViewer ? colors.onSignal : colors.ink} fontSize={node.isViewer ? 14 : 12} fontWeight="800" pointerEvents="none" opacity={matches ? 1 : .24}>{initials(node.label)}</text>
-              <text x={point.x} y={point.y + (node.isViewer ? 55 : 46)} textAnchor="middle" fill={colors.ink} fontSize="12" fontWeight="700" pointerEvents="none" opacity={matches ? 1 : .24}>{truncate(node.label, 20)}</text>
+          {layout.regions.map((region) => {
+            const tone = groupTones[region.index % groupTones.length];
+            return <g key={region.id}>
+              <rect data-community-region={region.id} x={region.x} y={region.y} width={region.width} height={region.height} rx="24" fill={tone.fill} fillOpacity=".42" stroke={tone.stroke} strokeWidth="2" />
+              <text x={region.x + 20} y={region.y + 29} fill={tone.stroke} fontSize="13" fontWeight="850" pointerEvents="none">{truncate(region.name, 34)}</text>
+              <text x={region.x + region.width - 20} y={region.y + 29} textAnchor="end" fill={colors.muted} fontSize="11" fontWeight="700" pointerEvents="none">{region.placements.length} {region.placements.length === 1 ? "profile" : "profiles"}</text>
+              {region.placements.map((placement) => {
+                const node = nodesById.get(placement.nodeId); if (!node) return null;
+                const active = selected?.id === node.id;
+                const matches = matchingIds.has(node.id);
+                return <g key={placement.key} className="graph-node" role="button" tabIndex={0} aria-label={`${node.label}, ${node.role}, in ${region.name}`} onClick={() => setSelectedId(node.id)} onFocus={() => setSelectedId(node.id)} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedId(node.id); } }} style={{ cursor: "pointer", opacity: matches ? 1 : .24 }}>
+                  <rect data-profile-node-card={placement.key} x={placement.x} y={placement.y} width="132" height="58" rx="14" fill={active ? colors.infoSoft : colors.surface} stroke={active ? colors.info : colors.lineStrong} strokeWidth={active ? 3 : 1.5} />
+                  <circle cx={placement.x + 25} cy={placement.y + 29} r="16" fill={active ? colors.info : colors.paperDeep} />
+                  <text x={placement.x + 25} y={placement.y + 33} textAnchor="middle" fill={active ? colors.onSignal : colors.ink} fontSize="10" fontWeight="850" pointerEvents="none">{initials(node.label)}</text>
+                  <text x={placement.x + 48} y={placement.y + 25} fill={colors.ink} fontSize="11" fontWeight="800" pointerEvents="none">{truncate(node.label, 13)}</text>
+                  <text x={placement.x + 48} y={placement.y + 43} fill={colors.muted} fontSize="10" fontWeight="700" pointerEvents="none">{node.role}</text>
+                </g>;
+              })}
             </g>;
           })}
+          {viewer && <g role="button" tabIndex={0} aria-label={`${viewer.label}, ${viewer.role}, you`} onClick={() => setSelectedId(viewer.id)} onFocus={() => setSelectedId(viewer.id)} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedId(viewer.id); } }} style={{ cursor: "pointer", opacity: matchingIds.has(viewer.id) ? 1 : .24 }}>
+            <rect data-viewer-node x={layout.viewer.x - 86} y={layout.viewer.y - 31} width="172" height="68" rx="20" fill={colors.signal} stroke={selected?.id === viewer.id ? colors.info : colors.signalText} strokeWidth={selected?.id === viewer.id ? 4 : 2} />
+            <circle cx={layout.viewer.x - 52} cy={layout.viewer.y + 3} r="20" fill={colors.surface} />
+            <text x={layout.viewer.x - 52} y={layout.viewer.y + 8} textAnchor="middle" fill={colors.ink} fontSize="11" fontWeight="900" pointerEvents="none">{initials(viewer.label)}</text>
+            <text x={layout.viewer.x - 22} y={layout.viewer.y} fill={colors.onSignal} fontSize="12" fontWeight="850" pointerEvents="none">{truncate(viewer.label, 15)}</text>
+            <text x={layout.viewer.x - 22} y={layout.viewer.y + 19} fill={colors.onSignal} fontSize="10" fontWeight="750" pointerEvents="none">You · {viewer.role}</text>
+          </g>}
         </g>
       </svg>
     </Box>
@@ -104,30 +116,53 @@ function GraphCanvas({ graph: visibleGraph, search, onSearch }: { graph: Profile
   </Flex>;
 }
 
-function createPositions(graph: ProfileGraphDTO) {
+export function createGraphLayout(graph: ProfileGraphDTO): GraphLayout {
   const viewer = graph.nodes.find((node) => node.isViewer);
-  const neighbors = graph.nodes.filter((node) => !node.isViewer);
-  const positions = new Map<string, Point>();
-  if (viewer) positions.set(viewer.id, { x: WIDTH / 2, y: HEIGHT / 2 });
-  const assigned = new Set<string>();
-  graph.groups.forEach((group, groupIndex) => {
-    const members = group.memberIds.filter((id) => id !== viewer?.id && !assigned.has(id));
-    if (!members.length) return;
-    const groupAngle = (groupIndex / Math.max(1, graph.groups.length)) * Math.PI * 2 - Math.PI / 2;
-    const groupRadius = graph.groups.length === 1 ? 205 : 225;
-    const center = { x: WIDTH / 2 + Math.cos(groupAngle) * groupRadius, y: HEIGHT / 2 + Math.sin(groupAngle) * groupRadius * .68 };
-    members.forEach((id, memberIndex) => {
-      const angle = (memberIndex / Math.max(1, members.length)) * Math.PI * 2 + seeded(id) * .35;
-      const radius = members.length === 1 ? 0 : 42 + seeded(`${id}:radius`) * 20;
-      positions.set(id, { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius });
-      assigned.add(id);
+  const nodeIds = new Set(graph.nodes.map((node) => node.id));
+  const viewerPoint = { x: WIDTH / 2, y: 100 };
+  const outerPadding = 28;
+  const columnGap = 28;
+  const regionGap = 28;
+  const regionWidth = (WIDTH - outerPadding * 2 - columnGap) / 2;
+  const cardWidth = 132;
+  const cardHeight = 58;
+  const cardGapX = 14;
+  const cardGapY = 14;
+  const cardsPerRow = 3;
+  const regionPaddingX = (regionWidth - cardsPerRow * cardWidth - (cardsPerRow - 1) * cardGapX) / 2;
+  const regionHeader = 52;
+  const regionPaddingBottom = 20;
+  const visibleGroups = graph.groups
+    .map((group) => ({ ...group, memberIds: group.memberIds.filter((id) => id !== viewer?.id && nodeIds.has(id)) }))
+    .filter((group) => group.memberIds.length > 0);
+  const groupedIds = new Set(visibleGroups.flatMap((group) => group.memberIds));
+  const ungroupedIds = graph.nodes.filter((node) => !node.isViewer && !groupedIds.has(node.id)).map((node) => node.id);
+  const communities = [
+    ...visibleGroups,
+    ...(ungroupedIds.length ? [{ id: "direct-connections", name: "Other direct connections", memberIds: ungroupedIds }] : []),
+  ];
+  const regionSpecs = communities.map((group, index) => {
+    const rows = Math.ceil(group.memberIds.length / cardsPerRow);
+    return { group, index, height: regionHeader + rows * cardHeight + Math.max(0, rows - 1) * cardGapY + regionPaddingBottom };
+  });
+  const regions: CommunityRegion[] = [];
+  let y = 182;
+  for (let index = 0; index < regionSpecs.length; index += 2) {
+    const pair = regionSpecs.slice(index, index + 2);
+    const rowHeight = Math.max(...pair.map((item) => item.height));
+    pair.forEach((item, column) => {
+      const x = outerPadding + column * (regionWidth + columnGap);
+      const placements = item.group.memberIds.map((nodeId, memberIndex) => ({
+        key: `${item.group.id}:${nodeId}`,
+        nodeId,
+        x: x + regionPaddingX + (memberIndex % cardsPerRow) * (cardWidth + cardGapX),
+        y: y + regionHeader + Math.floor(memberIndex / cardsPerRow) * (cardHeight + cardGapY),
+      }));
+      regions.push({ id: item.group.id, name: item.group.name, index: item.index, x, y, width: regionWidth, height: item.height, placements });
     });
-  });
-  neighbors.filter((node) => !assigned.has(node.id)).forEach((node, index, unassigned) => {
-    const angle = (index / Math.max(1, unassigned.length)) * Math.PI * 2;
-    positions.set(node.id, { x: WIDTH / 2 + Math.cos(angle) * 275, y: HEIGHT / 2 + Math.sin(angle) * 185 });
-  });
-  return positions;
+    y += rowHeight + regionGap;
+  }
+  return { viewer: viewerPoint, regions, height: Math.max(MIN_HEIGHT, y + 18) };
 }
 
 function ProfileSummary({ node, groups }: { node: ProfileGraphNodeDTO; groups: ProfileGraphDTO["groups"] }) {
@@ -141,21 +176,6 @@ const groupTones = [
   { fill: colors.warningSoft, stroke: colors.warning },
   { fill: colors.dangerSoft, stroke: colors.danger },
 ];
-
-function groupRegions(graph: ProfileGraphDTO, positions: Map<string, Point>) {
-  return graph.groups.flatMap((group, index) => {
-    const points = group.memberIds
-      .filter((id) => !graph.nodes.find((node) => node.id === id)?.isViewer)
-      .map((id) => positions.get(id))
-      .filter((point): point is Point => Boolean(point));
-    if (!points.length) return [];
-    const minX = Math.min(...points.map((point) => point.x)) - 54;
-    const maxX = Math.max(...points.map((point) => point.x)) + 54;
-    const minY = Math.min(...points.map((point) => point.y)) - 52;
-    const maxY = Math.max(...points.map((point) => point.y)) + 64;
-    return [{ id: group.id, name: group.name, index, x: minX, y: minY, width: maxX - minX, height: maxY - minY }];
-  });
-}
 
 const initials = (name: string) => name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 const truncate = (value: string, max: number) => value.length > max ? `${value.slice(0, max - 1)}…` : value;

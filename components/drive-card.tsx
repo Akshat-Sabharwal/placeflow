@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Box, Button, Flex, Heading, Text } from "@chakra-ui/react";
-import { ArrowRight, CalendarDays, GraduationCap, MapPin, Pin, WalletCards } from "lucide-react";
+import { ArrowRight, CalendarDays, MapPin, Pin, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 import type { DriveDTO } from "@/lib/contracts/domain";
 import { setDrivePinned } from "@/lib/api-client/drives";
 import { queryKeys } from "@/lib/queries/keys";
 import { StatusBadge } from "@/components/status-badge";
-import { reasonCopy } from "@/components/eligibility-panel";
-import { formatDateTime, formatEligibilityRequirements } from "@/lib/ui/format";
+import { formatDateTime } from "@/lib/ui/format";
 import { colors } from "@/lib/ui/tokens";
 
 export function DriveCard({ drive, coordinator = false }: { drive: DriveDTO; coordinator?: boolean }) {
@@ -28,14 +27,11 @@ export function DriveCard({ drive, coordinator = false }: { drive: DriveDTO; coo
     },
     onError: () => toast.error("The pin could not be updated."),
   });
-  const eligibilityText = drive.eligibility?.eligible
-    ? "Eligible to apply"
-    : drive.eligibility?.reasons[0]
-      ? `Not eligible: ${reasonCopy[drive.eligibility.reasons[0]]}`
-      : "Eligibility unavailable";
+  const eligibilityText = drive.eligibility?.eligible ? "Eligible" : "Not eligible";
 
   return (
     <Box
+      data-drive-card={drive.id}
       bg={colors.surface}
       border="1px solid"
       borderColor={colors.line}
@@ -79,14 +75,6 @@ export function DriveCard({ drive, coordinator = false }: { drive: DriveDTO; coo
           <Flex gap="2" align="center"><CalendarDays size={15} />Apply by {formatDateTime(drive.registrationDeadline)}</Flex>
           {drive.location && <Flex gap="2" align="center"><MapPin size={15} />{drive.location}</Flex>}
           {drive.packageText && <Flex gap="2" align="center"><WalletCards size={15} />{drive.packageText}</Flex>}
-          {!coordinator && (
-            <Flex gap="2" align="start" color={colors.ink}>
-              <GraduationCap size={15} style={{ marginTop: 2, flexShrink: 0 }} />
-              <Text fontSize="sm" lineClamp="2">
-                {formatEligibilityRequirements(drive)}
-              </Text>
-            </Flex>
-          )}
         </Flex>
         <Flex mt="6" align="center" justify="space-between" gap="4">
           {coordinator ? (

@@ -269,6 +269,10 @@ test('completes the student and coordinator lifecycle with private blob and noti
     await studentPage.goto('/student/drives')
     await studentPage.getByLabel('Search drives').fill(company)
     await expect(studentPage.getByRole('heading', { name: 'Platform Engineer' })).toBeVisible()
+    const driveCard = studentPage.locator(`[data-drive-card="${driveId}"]`)
+    await expect(driveCard.getByText('Eligible', { exact: true })).toBeVisible()
+    await expect(driveCard.getByText(/Branches:|Years:|CGPA:|backlogs? max/i)).toHaveCount(0)
+    await expect(driveCard.getByText(/Not eligible:/i)).toHaveCount(0)
     await studentPage.getByRole('link', { name: new RegExp(`View Platform Engineer at ${company}`) }).click()
     await expect(studentPage).toHaveURL(new RegExp(`/student/drives/${driveId}$`), { timeout: 30_000 })
     await expect(studentPage.getByRole('heading', { name: 'You meet the eligibility rules' })).toBeVisible({ timeout: 30_000 })
@@ -455,8 +459,29 @@ test('runs documents, public and private communities, profile graph, and setting
     const publicSettings = { profileVisibility: 'public', showGroupMemberships: true, themePreference: 'light', defaultGroupVisibility: 'private' }
     expect((await studentContext.request.patch('/api/settings', { data: publicSettings })).ok()).toBe(true)
     await coordinatorPage.goto('/coordinator/people')
-    await expect(coordinatorPage.getByRole('img', { name: 'Your direct public profile connections' })).toBeVisible()
+    const profileGraph = coordinatorPage.getByRole('img', { name: 'Your direct public profile connections' })
+    await expect(profileGraph).toBeVisible()
     await expect(coordinatorPage.getByText(student.name).last()).toBeVisible()
+    const graphLayout = await profileGraph.evaluate((element) => {
+      const readRect = (rect: Element) => ({
+        x: Number(rect.getAttribute('x')),
+        y: Number(rect.getAttribute('y')),
+        width: Number(rect.getAttribute('width')),
+        height: Number(rect.getAttribute('height')),
+      })
+      const overlaps = (first: ReturnType<typeof readRect>, second: ReturnType<typeof readRect>) =>
+        first.x < second.x + second.width && first.x + first.width > second.x && first.y < second.y + second.height && first.y + first.height > second.y
+      const regions = [...element.querySelectorAll('[data-community-region]')].map(readRect)
+      const cards = [...element.querySelectorAll('[data-profile-node-card]')].map(readRect)
+      const hasOverlap = (rects: ReturnType<typeof readRect>[]) => rects.some((rect, index) => rects.slice(index + 1).some((candidate) => overlaps(rect, candidate)))
+      const everyCardIsContained = cards.every((card) => regions.some((region) => card.x >= region.x && card.y >= region.y && card.x + card.width <= region.x + region.width && card.y + card.height <= region.y + region.height))
+      return { regionCount: regions.length, cardCount: cards.length, regionsOverlap: hasOverlap(regions), cardsOverlap: hasOverlap(cards), everyCardIsContained }
+    })
+    expect(graphLayout.regionCount).toBeGreaterThan(0)
+    expect(graphLayout.cardCount).toBeGreaterThan(0)
+    expect(graphLayout.regionsOverlap).toBe(false)
+    expect(graphLayout.cardsOverlap).toBe(false)
+    expect(graphLayout.everyCardIsContained).toBe(true)
     const graph = await coordinatorContext.request.get('/api/profiles/graph')
     const graphBody = await graph.json()
     expect(graphBody.data.nodes.some((node: { id: string }) => node.id === student.id)).toBe(true)
