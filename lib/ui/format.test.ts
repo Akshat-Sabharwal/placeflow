@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatBytes, formatDate, formatDateTime, titleCase } from './format'
+import { formatBytes, formatDate, formatDateTime, formatEligibilityRequirements, titleCase } from './format'
 
 describe('display formatting', () => {
   it.each([
@@ -30,5 +30,14 @@ describe('display formatting', () => {
     ['', ''],
   ])('turns %s into title copy', (value, expected) => {
     expect(titleCase(value)).toBe(expected)
+  })
+
+  it('formats every concrete drive eligibility requirement', () => {
+    expect(formatEligibilityRequirements({
+      eligibleBranches: ['CSE', 'ECE'],
+      eligibleYears: [2027, 2028],
+      minimumCgpa: 8,
+      maximumBacklogs: 1,
+    })).toBe('Branches: CSE, ECE · Years: 2027, 2028 · CGPA: 8+ · 1 backlog max')
   })
 })

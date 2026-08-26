@@ -8,17 +8,17 @@ type Context = { params: Promise<{ id: string }> }
 
 export async function GET(_request: Request, context: Context) {
   return handleRoute(async () => {
-    await authorizeRequest('coordinator')
+    const viewer = await authorizeRequest('coordinator')
     const { id } = await context.params
     if (!uuidSchema.safeParse(id).success) throw new RouteError(400, 'VALIDATION_ERROR', 'Invalid drive id.')
     const admin = createAdminClient()
-    const { data: drive } = await admin.from('drives').select('id').eq('id', id).maybeSingle()
+    const { data: drive } = await admin.from('drives').select('id').eq('id', id).eq('created_by', viewer.userId).maybeSingle()
     if (!drive) throw new RouteError(404, 'NOT_FOUND', 'Drive not found.')
     const { data: applications, error } = await admin.from('applications').select('*').eq('drive_id', id).order('applied_at', { ascending: false }).limit(100)
     if (error) throw new Error(error.message)
     const studentIds = [...new Set((applications ?? []).map((item) => item.student_id))]
     const { data: profiles } = studentIds.length
-      ? await admin.from('profiles').select('id,full_name,roll_number,branch,graduation_year,cgpa,backlogs').in('id', studentIds)
+      ? await admin.from('profiles').select('id,full_name,roll_number,branch,graduation_year,cgpa,backlogs,active_profile_document_id').in('id', studentIds)
       : { data: [] }
     const byId = new Map((profiles ?? []).map((profile) => [profile.id, profile]))
     const result: ApplicantDTO[] = (applications ?? []).map((application) => {
@@ -33,7 +33,10 @@ export async function GET(_request: Request, context: Context) {
         cgpa: profile?.cgpa ?? null,
         backlogs: profile?.backlogs ?? null,
         applicationStatus: application.status,
+        candidateResponse: application.candidate_response,
+        candidateRespondedAt: application.candidate_responded_at,
         resumeDocumentId: application.resume_document_id,
+        activeProfileDocumentId: profile?.active_profile_document_id ?? null,
         appliedAt: application.applied_at,
         updatedAt: application.updated_at,
       }

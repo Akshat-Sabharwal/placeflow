@@ -130,7 +130,7 @@ export async function loadOnboardingSnapshot(
   }
 }
 
-export async function requireUnlockedStudentProfile(admin: AdminClient, studentId: string) {
+export async function requireStudentProfile(admin: AdminClient, studentId: string) {
   const { data, error } = await admin
     .from('profiles')
     .select('id,onboarding_completed_at')
@@ -138,9 +138,6 @@ export async function requireUnlockedStudentProfile(admin: AdminClient, studentI
     .maybeSingle()
   if (error) throw new Error(error.message)
   if (!data) throw new RouteError(404, 'NOT_FOUND', 'Your profile could not be found.')
-  if (data.onboarding_completed_at) {
-    throw new RouteError(409, 'PROFILE_LOCKED', 'Your placement profile is locked after onboarding.')
-  }
 }
 
 export async function requireOwnedOnboardingDocument(

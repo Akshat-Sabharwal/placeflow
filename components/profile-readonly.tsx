@@ -25,7 +25,7 @@ export function ProfileReadonly({ profile }: { profile: ProfileDTO }) {
     <ProfileSection icon={UserRound} title="Identity"><Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap="3"><CopyValue label="Full name" value={profile.fullName ?? "Not provided"} /><CopyValue label="Email" value={profile.email} /></Grid></ProfileSection>
     <ProfileSection icon={GraduationCap} title="Academic record"><Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap="3">{academics.map((row) => <CopyValue key={row.label} {...row} />)}</Grid></ProfileSection>
     <ProfileSection icon={Link2} title="Professional links">{links.length ? <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap="3">{links.map((row) => <CopyValue key={row.label} {...row} />)}</Grid> : <Text color={colors.muted}>No professional links were provided.</Text>}</ProfileSection>
-    <Flex bg={colors.infoSoft} color={colors.info} border="1px solid" borderColor={colors.line} borderRadius="14px" p="4" gap="3"><IdCard size={20} /><Text fontSize="sm">This profile is read-only after onboarding so eligibility data remains dependable. Contact your placement coordinator if a verified academic value needs correction.</Text></Flex>
+    <Flex bg={colors.infoSoft} color={colors.info} border="1px solid" borderColor={colors.info} borderRadius="14px" p="4" gap="3"><IdCard size={20} /><Text fontSize="sm">This profile is not directly editable. Upload and review a new document to replace the active profile source used for eligibility and coordinator review.</Text></Flex>
   </Flex>;
 }
 

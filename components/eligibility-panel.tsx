@@ -3,7 +3,7 @@ import { CheckCircle2, CircleX } from "lucide-react";
 import type { EligibilityReason } from "@/lib/contracts/domain";
 import { colors } from "@/lib/ui/tokens";
 
-const reasonCopy: Record<EligibilityReason, string> = {
+export const reasonCopy: Record<EligibilityReason, string> = {
   PROFILE_INCOMPLETE: "Complete your placement profile.", DRIVE_NOT_OPEN: "This drive is not accepting applications.", DEADLINE_PASSED: "The registration deadline has passed.", BRANCH_NOT_ELIGIBLE: "Your branch is not included for this drive.", YEAR_NOT_ELIGIBLE: "Your graduation year is not included for this drive.", CGPA_TOO_LOW: "Your CGPA is below the required minimum.", TOO_MANY_BACKLOGS: "Your backlog count is above the allowed maximum.",
 };
 

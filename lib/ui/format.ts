@@ -18,3 +18,16 @@ export function formatBytes(bytes: number) {
 export function titleCase(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
+
+export function formatEligibilityRequirements(requirements: {
+  eligibleBranches: string[];
+  eligibleYears: number[];
+  minimumCgpa: number;
+  maximumBacklogs: number;
+}) {
+  const branches = requirements.eligibleBranches.join(", ");
+  const years = requirements.eligibleYears.join(", ");
+  const backlogLabel = requirements.maximumBacklogs === 1 ? "backlog" : "backlogs";
+
+  return `Branches: ${branches} · Years: ${years} · CGPA: ${requirements.minimumCgpa}+ · ${requirements.maximumBacklogs} ${backlogLabel} max`;
+}

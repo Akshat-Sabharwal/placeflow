@@ -61,7 +61,7 @@ export function ProfileForm({ prefill, onReviewSubmit, pending = false, submitLa
         </Grid>
       </Box>
 
-      <Flex mt="6" justify="flex-end" align="center" gap="4"><Text color={colors.muted} fontSize="sm" aria-live="polite">{form.formState.isValid ? "All required values are ready for confirmation." : "Review the required fields."}</Text><Button type="submit" bg={colors.signal} color={colors.ink} loading={pending} loadingText="Locking…" disabled={!form.formState.isValid || pending}><Save size={17} />{submitLabel}</Button></Flex>
+      <Flex mt="6" justify="flex-end" align="center" gap="4"><Text color={colors.muted} fontSize="sm" aria-live="polite">{form.formState.isValid ? "All required values are ready for confirmation." : "Review the required fields."}</Text><Button type="submit" bg={colors.signal} color={colors.onSignal} _hover={{ bg: colors.signalDark }} _active={{ bg: colors.signalDark }} loading={pending} loadingText="Locking…" disabled={!form.formState.isValid || pending}><Save size={17} />{submitLabel}</Button></Flex>
       </Box>
     </form>
   );

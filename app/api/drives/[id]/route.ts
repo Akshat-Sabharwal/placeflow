@@ -20,10 +20,11 @@ export async function GET(_request: Request, context: Context) {
     const dto = toDriveDTO(row)
 
     if (viewer.role === 'student') {
-      const [{ data: profile }, { data: application }, { data: documents }] = await Promise.all([
+      const [{ data: profile }, { data: application }, { data: documents }, { data: pin }] = await Promise.all([
         viewer.supabase.from('profiles').select('*').eq('id', viewer.userId).single(),
         viewer.supabase.from('applications').select('id').eq('student_id', viewer.userId).eq('drive_id', id).maybeSingle(),
         viewer.supabase.from('documents').select('*').eq('student_id', viewer.userId).eq('type', 'resume').order('uploaded_at', { ascending: false }),
+        createAdminClient().from('pinned_drives').select('drive_id').eq('student_id', viewer.userId).eq('drive_id', id).maybeSingle(),
       ])
       if (profile) dto.eligibility = evaluateEligibility(
         { onboardingCompletedAt: profile.onboarding_completed_at, branch: profile.branch, graduationYear: profile.graduation_year, cgpa: profile.cgpa, backlogs: profile.backlogs },
@@ -31,6 +32,7 @@ export async function GET(_request: Request, context: Context) {
       )
       dto.alreadyApplied = Boolean(application)
       dto.resumes = (documents ?? []).map(toDocumentDTO)
+      dto.pinned = Boolean(pin)
     }
     return apiData(dto, { headers: PRIVATE_NO_STORE_HEADERS })
   })
@@ -39,12 +41,12 @@ export async function GET(_request: Request, context: Context) {
 export async function PATCH(request: Request, context: Context) {
   return handleRoute(async () => {
     assertSameOrigin(request)
-    await authorizeRequest('coordinator')
+    const viewer = await authorizeRequest('coordinator')
     const { id } = await context.params
     if (!uuidSchema.safeParse(id).success) throw new RouteError(400, 'VALIDATION_ERROR', 'Invalid drive id.')
     const body = await parseJson(request, updateDriveSchema)
     const admin = createAdminClient()
-    const { data: current } = await admin.from('drives').select('*').eq('id', id).maybeSingle()
+    const { data: current } = await admin.from('drives').select('*').eq('id', id).eq('created_by', viewer.userId).maybeSingle()
     if (!current) throw new RouteError(404, 'NOT_FOUND', 'Drive not found.')
     if (body.status && !canTransitionDrive(current.status, body.status)) {
       throw new RouteError(409, 'INVALID_STATUS_TRANSITION', `Cannot move a drive from ${current.status} to ${body.status}.`)
@@ -52,11 +54,16 @@ export async function PATCH(request: Request, context: Context) {
 
     const registrationDeadline = body.registrationDeadline ?? current.registration_deadline
     const driveDate = body.driveDate === undefined ? current.drive_date : body.driveDate
+    const rounds = body.rounds ?? current.rounds
+    const activeRoundIndex = body.activeRoundIndex === undefined ? current.active_round_index : body.activeRoundIndex
     if (body.status === 'published' && new Date(registrationDeadline) <= new Date()) {
       throw new RouteError(400, 'VALIDATION_ERROR', 'Registration deadline must be in the future when publishing.', { field: 'registrationDeadline' })
     }
     if (driveDate && new Date(driveDate) < new Date(registrationDeadline)) {
       throw new RouteError(400, 'VALIDATION_ERROR', 'Drive date must be after the registration deadline.')
+    }
+    if (activeRoundIndex !== null && activeRoundIndex >= (Array.isArray(rounds) ? rounds.length : 0)) {
+      throw new RouteError(400, 'VALIDATION_ERROR', 'The active round must reference a configured round.')
     }
 
     const updates: TablesUpdate<'drives'> = {}
@@ -71,6 +78,8 @@ export async function PATCH(request: Request, context: Context) {
     if (body.maximumBacklogs !== undefined) updates.maximum_backlogs = body.maximumBacklogs
     if (body.registrationDeadline !== undefined) updates.registration_deadline = body.registrationDeadline
     if (body.driveDate !== undefined) updates.drive_date = body.driveDate
+    if (body.rounds !== undefined) updates.rounds = body.rounds
+    if (body.activeRoundIndex !== undefined) updates.active_round_index = body.activeRoundIndex
     if (body.status !== undefined) updates.status = body.status
 
     const { data, error } = await admin.from('drives').update(updates).eq('id', id).eq('updated_at', current.updated_at).select().maybeSingle()

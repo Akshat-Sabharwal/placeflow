@@ -26,8 +26,8 @@ export async function POST(request: Request) {
     if (error?.message.includes('ONBOARDING_NOT_READY') || error?.message.includes('ONBOARDING_INCOMPLETE')) {
       throw new RouteError(409, 'ONBOARDING_NOT_READY', 'Review and confirm every required field before submitting.')
     }
-    if (error?.message.includes('PROFILE_ALREADY_LOCKED')) {
-      throw new RouteError(409, 'PROFILE_LOCKED', 'Your placement profile is already locked.')
+    if (error?.message.includes('PROFILE_NOT_FOUND')) {
+      throw new RouteError(404, 'NOT_FOUND', 'Your profile could not be found.')
     }
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Onboarding submission did not return a profile')

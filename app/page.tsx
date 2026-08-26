@@ -102,11 +102,12 @@ export default function Home() {
             </Button>
             <Button
               asChild
-              bg={colors.ink}
-              color={colors.paper}
+              bg={colors.neutralSolid}
+              color={colors.onNeutral}
               borderRadius="full"
               px="5"
-              _hover={{ bg: colors.lineStrong }}
+              _hover={{ bg: colors.neutralSolidHover, color: colors.onNeutral }}
+              _active={{ bg: colors.neutralSolidHover }}
             >
               <Link href="/login">
                 Sign in <ArrowRight size={16} />
@@ -165,10 +166,11 @@ export default function Home() {
                 asChild
                 size="lg"
                 bg={colors.signal}
-                color={colors.ink}
+                color={colors.onSignal}
                 borderRadius="full"
                 px="7"
                 _hover={{ bg: colors.signalDark }}
+                _active={{ bg: colors.signalDark }}
               >
                 <Link href="/login">
                   Enter PlaceFlow <ArrowRight size={18} />
@@ -244,7 +246,7 @@ export default function Home() {
                 >
                   <Text
                     fontSize="sm"
-                    color={colors.signalDark}
+                    color={colors.signalText}
                     fontWeight="800"
                   >
                     {item.number}
@@ -368,7 +370,7 @@ export default function Home() {
             maxW="1136px"
             mx="auto"
             bg={colors.signal}
-            color={colors.ink}
+            color={colors.onSignal}
             borderRadius="24px"
             px={{ base: "6", md: "10" }}
             py={{ base: "10", md: "12" }}
@@ -386,7 +388,7 @@ export default function Home() {
               >
                 Ready when the next drive opens.
               </Heading>
-              <Text mt="2" color={colors.ink}>
+              <Text mt="2" color={colors.onSignal}>
                 Sign in with your existing Google or GitHub account.
               </Text>
             </Box>
@@ -397,6 +399,8 @@ export default function Home() {
               color={colors.ink}
               borderRadius="full"
               px="7"
+              _hover={{ bg: colors.paperDeep, color: colors.ink }}
+              _active={{ bg: colors.paperDeep }}
             >
               <Link href="/login">
                 Get started <ArrowRight size={18} />

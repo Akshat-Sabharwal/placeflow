@@ -16,6 +16,8 @@ export type Database = {
       applications: {
         Row: {
           applied_at: string
+          candidate_responded_at: string | null
+          candidate_response: Database["public"]["Enums"]["candidate_response_status"]
           drive_id: string
           id: string
           resume_document_id: string
@@ -25,6 +27,8 @@ export type Database = {
         }
         Insert: {
           applied_at?: string
+          candidate_responded_at?: string | null
+          candidate_response?: Database["public"]["Enums"]["candidate_response_status"]
           drive_id: string
           id?: string
           resume_document_id: string
@@ -34,6 +38,8 @@ export type Database = {
         }
         Update: {
           applied_at?: string
+          candidate_responded_at?: string | null
+          candidate_response?: Database["public"]["Enums"]["candidate_response_status"]
           drive_id?: string
           id?: string
           resume_document_id?: string
@@ -331,6 +337,7 @@ export type Database = {
       }
       drives: {
         Row: {
+          active_round_index: number | null
           company_name: string
           created_at: string
           created_by: string
@@ -345,10 +352,12 @@ export type Database = {
           minimum_cgpa: number
           package_text: string | null
           registration_deadline: string
+          rounds: Json
           status: Database["public"]["Enums"]["drive_status"]
           updated_at: string
         }
         Insert: {
+          active_round_index?: number | null
           company_name: string
           created_at?: string
           created_by: string
@@ -363,10 +372,12 @@ export type Database = {
           minimum_cgpa?: number
           package_text?: string | null
           registration_deadline: string
+          rounds?: Json
           status?: Database["public"]["Enums"]["drive_status"]
           updated_at?: string
         }
         Update: {
+          active_round_index?: number | null
           company_name?: string
           created_at?: string
           created_by?: string
@@ -381,6 +392,7 @@ export type Database = {
           minimum_cgpa?: number
           package_text?: string | null
           registration_deadline?: string
+          rounds?: Json
           status?: Database["public"]["Enums"]["drive_status"]
           updated_at?: string
         }
@@ -539,6 +551,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_profile_document_id: string | null
           avatar_url: string | null
           backlogs: number | null
           branch: string | null
@@ -560,6 +573,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          active_profile_document_id?: string | null
           avatar_url?: string | null
           backlogs?: number | null
           branch?: string | null
@@ -581,6 +595,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          active_profile_document_id?: string | null
           avatar_url?: string | null
           backlogs?: number | null
           branch?: string | null
@@ -601,7 +616,48 @@ export type Database = {
           theme_preference?: Database["public"]["Enums"]["theme_preference"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_active_profile_document_id_fkey"
+            columns: ["active_profile_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pinned_drives: {
+        Row: {
+          created_at: string
+          drive_id: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          drive_id: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          drive_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pinned_drives_drive_id_fkey"
+            columns: ["drive_id"]
+            isOneToOne: false
+            referencedRelation: "drives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pinned_drives_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
@@ -645,16 +701,19 @@ export type Database = {
         Row: {
           granted_at: string
           role: Database["public"]["Enums"]["app_role"]
+          role_selected_at: string | null
           user_id: string
         }
         Insert: {
           granted_at?: string
           role?: Database["public"]["Enums"]["app_role"]
+          role_selected_at?: string | null
           user_id: string
         }
         Update: {
           granted_at?: string
           role?: Database["public"]["Enums"]["app_role"]
+          role_selected_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -672,6 +731,7 @@ export type Database = {
         }
         Returns: {
           avatar_url: string | null
+          active_profile_document_id: string | null
           backlogs: number | null
           branch: string | null
           cgpa: number | null
@@ -702,6 +762,7 @@ export type Database = {
     Enums: {
       app_role: "student" | "coordinator"
       application_status: "applied" | "shortlisted" | "selected" | "rejected"
+      candidate_response_status: "pending" | "accepted" | "declined"
       community_member_role: "owner" | "moderator" | "member"
       community_member_status: "pending" | "active" | "rejected"
       community_visibility: "public" | "private"

@@ -48,9 +48,9 @@ export function NotificationBell() {
 
   return (
     <Box position="relative">
-      <Button variant="ghost" size="sm" aria-label={`${unread} unread notifications`} onClick={() => setOpen((value) => !value)} position="relative">
+      <Button variant="plain" size="sm" aria-label={`${unread} unread notifications`} onClick={() => setOpen((value) => !value)} position="relative" bg={colors.headerControl} color={colors.onHeaderControl} border="1px solid" borderColor={colors.line} _hover={{ bg: colors.headerControlHover, color: colors.onHeaderControl, borderColor: colors.lineStrong }} _focusVisible={{ outlineColor: colors.focus }}>
         {unread ? <BellRing size={19} /> : <Bell size={19} />}
-        {unread > 0 && <Box position="absolute" top="1" right="1" minW="17px" h="17px" borderRadius="full" bg={colors.signalDark} color={colors.paper} fontSize="10px" display="grid" placeItems="center">{unread > 9 ? "9+" : unread}</Box>}
+        {unread > 0 && <Box position="absolute" top="1" right="1" minW="17px" h="17px" borderRadius="full" bg={colors.signalText} color={colors.paper} fontSize="10px" display="grid" placeItems="center">{unread > 9 ? "9+" : unread}</Box>}
       </Button>
       {open && (
         <Box role="dialog" aria-label="Notifications" position="absolute" right="0" top="48px" w={{ base: "calc(100vw - 32px)", sm: "390px" }} maxH="560px" overflowY="auto" bg={colors.surface} border="1px solid" borderColor={colors.line} borderRadius="18px" boxShadow="var(--shadow-lg)" p="4" zIndex="40">

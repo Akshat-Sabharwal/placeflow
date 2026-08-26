@@ -12,7 +12,7 @@ describe('database to API mappings', () => {
       cgpa: 8.5, backlogs: 0, linkedin_url: null, github_url: 'https://github.com/student',
       profile_visibility: 'public', show_group_memberships: true, theme_preference: 'light',
       default_group_visibility: 'public',
-      onboarding_completed_at: timestamp, created_at: timestamp, updated_at: timestamp,
+      onboarding_completed_at: timestamp, active_profile_document_id: null, created_at: timestamp, updated_at: timestamp,
     }
     expect(toProfileDTO(row)).toEqual({
       id: 'user', email: 'student@example.test', fullName: 'Student One', avatarUrl: null,
@@ -20,7 +20,7 @@ describe('database to API mappings', () => {
       cgpa: 8.5, backlogs: 0, linkedinUrl: null, githubUrl: 'https://github.com/student',
       profileVisibility: 'public', showGroupMemberships: true, themePreference: 'light',
       defaultGroupVisibility: 'public',
-      onboardingCompletedAt: timestamp, createdAt: timestamp, updatedAt: timestamp,
+      onboardingCompletedAt: timestamp, activeProfileDocumentId: null, createdAt: timestamp, updatedAt: timestamp,
     })
   })
 
@@ -30,6 +30,7 @@ describe('database to API mappings', () => {
       description: 'Build systems.', location: 'Remote', package_text: '12 LPA',
       eligible_branches: ['CSE'], eligible_years: [2027], minimum_cgpa: 7,
       maximum_backlogs: 0, registration_deadline: timestamp, drive_date: null,
+      rounds: [], active_round_index: null,
       status: 'published', created_at: timestamp, updated_at: timestamp,
     }
     expect(toDriveDTO(row)).toMatchObject({ id: 'drive', createdBy: 'coordinator', companyName: 'Acme', jobRole: 'Engineer', eligibleBranches: ['CSE'], eligibleYears: [2027], minimumCgpa: 7, maximumBacklogs: 0 })
@@ -37,7 +38,7 @@ describe('database to API mappings', () => {
   })
 
   it('maps application, document, and notification timestamps', () => {
-    const application: Tables<'applications'> = { id: 'app', student_id: 'student', drive_id: 'drive', resume_document_id: 'doc', status: 'applied', applied_at: timestamp, updated_at: timestamp }
+    const application: Tables<'applications'> = { id: 'app', student_id: 'student', drive_id: 'drive', resume_document_id: 'doc', status: 'applied', candidate_response: 'pending', candidate_responded_at: null, applied_at: timestamp, updated_at: timestamp }
     const document: Tables<'documents'> = { id: 'doc', student_id: 'student', type: 'resume', original_name: 'resume.pdf', mime_type: 'application/pdf', size_bytes: 123, storage_path: 'student/resume/doc.pdf', uploaded_at: timestamp }
     const notification: Tables<'notifications'> = { id: 'notice', user_id: 'student', type: 'status', title: 'Shortlisted', body: 'Update', url: '/student/applications', drive_id: 'drive', application_id: 'app', event_key: 'app:shortlisted', read_at: null, created_at: timestamp }
 

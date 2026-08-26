@@ -9,5 +9,5 @@ export const BRANCH_SUGGESTIONS = [
 ] as const
 
 export function normalizeBranch(value: string): string {
-  return value.trim().replace(/\s+/g, ' ').toUpperCase()
+  return value.trim().replace(/^DEMO-/i, '').replace(/\s+/g, ' ').toUpperCase()
 }

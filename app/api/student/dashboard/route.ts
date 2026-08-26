@@ -12,11 +12,12 @@ import {
   RouteError,
 } from "@/lib/server/http";
 import { toApplicationDTO, toDriveDTO, toProfileDTO } from "@/lib/server/dto";
+import { createAdminClient } from "@/lib/server/supabase-admin";
 
 export async function GET() {
   return handleRoute(async () => {
     const viewer = await authorizeRequest("student");
-    const [profileResult, drivesResult, applicationsResult] = await Promise.all([
+    const [profileResult, drivesResult, applicationsResult, pinsResult] = await Promise.all([
       viewer.supabase.from("profiles").select("*").eq("id", viewer.userId).single(),
       viewer.supabase
         .from("drives")
@@ -29,6 +30,10 @@ export async function GET() {
         .eq("student_id", viewer.userId)
         .order("updated_at", { ascending: false })
         .limit(50),
+      createAdminClient()
+        .from("pinned_drives")
+        .select("drive_id")
+        .eq("student_id", viewer.userId),
     ]);
 
     if (profileResult.error || !profileResult.data) {
@@ -36,10 +41,12 @@ export async function GET() {
     }
     if (drivesResult.error) throw new Error(drivesResult.error.message);
     if (applicationsResult.error) throw new Error(applicationsResult.error.message);
+    if (pinsResult.error) throw new Error(pinsResult.error.message);
 
     const profile = toProfileDTO(profileResult.data);
     const applicationRows = applicationsResult.data ?? [];
     const appliedDriveIds = new Set(applicationRows.map((row) => row.drive_id));
+    const pinnedDriveIds = new Set((pinsResult.data ?? []).map((row) => row.drive_id));
     const drives: DriveDTO[] = (drivesResult.data ?? []).map((row) => {
       const drive = toDriveDTO(row);
       drive.eligibility = evaluateEligibility(
@@ -60,6 +67,7 @@ export async function GET() {
         },
       );
       drive.alreadyApplied = appliedDriveIds.has(drive.id);
+      drive.pinned = pinnedDriveIds.has(drive.id);
       return drive;
     });
 

@@ -38,9 +38,10 @@ if (!profile) {
   process.exit(1);
 }
 
+const grantedAt = new Date().toISOString();
 const { error: roleError } = await supabase
   .from("user_roles")
-  .update({ role: "coordinator", granted_at: new Date().toISOString() })
+  .update({ role: "coordinator", granted_at: grantedAt, role_selected_at: grantedAt })
   .eq("user_id", profile.id);
 
 if (roleError) {

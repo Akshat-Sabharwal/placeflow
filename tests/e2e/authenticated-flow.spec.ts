@@ -131,20 +131,35 @@ test('enforces authentication, role boundaries, origin checks, and validation en
 
 test('completes the student and coordinator lifecycle with private blob and notification checks', async () => {
   test.setTimeout(300_000)
+  const darkTheme = await admin.from('profiles').update({ theme_preference: 'dark' }).in('id', [student.id, coordinator.id])
+  expect(darkTheme.error).toBeNull()
   const studentPage = await studentContext.newPage()
   const coordinatorPage = await coordinatorContext.newPage()
+  await studentPage.addInitScript(() => localStorage.setItem('placeflow-theme', 'dark'))
+  await coordinatorPage.addInitScript(() => localStorage.setItem('placeflow-theme', 'dark'))
 
   await test.step('student imports a private source, reviews extracted fields, and locks onboarding', async () => {
     await studentPage.goto('/student/onboarding')
     await waitForHydration(studentPage)
     await expect(studentPage.getByRole('heading', { name: 'Start with a source document.' })).toBeVisible()
+    await expect(studentPage.getByRole('heading', { name: 'Prepare a consistent profile source' })).toBeVisible()
+    await expect(studentPage.getByText(/full name, roll number, branch, graduation year, CGPA/i)).toBeVisible()
+    await expect(studentPage.getByText(/PDF, PNG, JPEG, or WebP file up to 50 MiB/i)).toBeVisible()
+
+    const notifications = studentPage.getByRole('button', { name: /unread notifications/i })
+    const signOut = studentPage.getByRole('button', { name: 'Sign out' })
+    await expect(notifications).toHaveCSS('background-color', 'rgb(52, 58, 51)')
+    await expect(signOut).toHaveCSS('background-color', 'rgb(52, 58, 51)')
+    await notifications.hover()
+    await expect(notifications).toHaveCSS('background-color', 'rgb(68, 75, 66)')
+
     await studentPage.locator('input[type="file"]').setInputFiles({
       name: 'institution-record.pdf',
       mimeType: 'application/pdf',
       buffer: pdf,
     })
-    await expect(studentPage.getByRole('heading', { name: 'Review and lock your profile' })).toBeVisible({ timeout: 60_000 })
-    const submit = studentPage.getByRole('button', { name: 'Confirm and lock profile' })
+    await expect(studentPage.getByRole('heading', { name: 'Review and activate your profile' })).toBeVisible({ timeout: 60_000 })
+    const submit = studentPage.getByRole('button', { name: 'Activate profile' })
     await expect(studentPage.getByLabel('Roll number')).toHaveValue(rollNumber)
     await expect(studentPage.getByLabel('Branch')).toHaveValue('CSE')
     await studentPage.getByLabel('CGPA').fill('11')

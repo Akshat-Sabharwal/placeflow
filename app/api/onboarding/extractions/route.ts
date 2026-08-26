@@ -3,7 +3,7 @@ import { createOnboardingExtractionSchema } from '@/lib/contracts/schemas'
 import { apiData, assertSameOrigin, handleRoute, parseJson, PRIVATE_NO_STORE_HEADERS, RouteError } from '@/lib/server/http'
 import {
   requireOwnedOnboardingDocument,
-  requireUnlockedStudentProfile,
+  requireStudentProfile,
   toDocumentExtractionDTO,
   toOnboardingRecordDTO,
 } from '@/lib/server/onboarding'
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const viewer = await authorizeRequest('student')
     const body = await parseJson(request, createOnboardingExtractionSchema)
     const admin = createAdminClient()
-    await requireUnlockedStudentProfile(admin, viewer.userId)
+    await requireStudentProfile(admin, viewer.userId)
     const document = await requireOwnedOnboardingDocument(admin, viewer.userId, body.documentId)
 
     const recordLookup = await admin
@@ -48,7 +48,21 @@ export async function POST(request: Request) {
     }
 
     if (record.status === 'submitted') {
-      throw new RouteError(409, 'PROFILE_LOCKED', 'Your placement profile is already locked.')
+      const restarted = await admin
+        .from('onboarding_records')
+        .update({
+          status: 'draft',
+          submitted_at: null,
+          accepted_extraction_id: null,
+        })
+        .eq('id', record.id)
+        .eq('student_id', viewer.userId)
+        .select('*')
+        .single()
+      if (restarted.error || !restarted.data) {
+        throw new Error(restarted.error?.message ?? 'Profile refresh could not be started')
+      }
+      record = restarted.data
     }
     if (record.status === 'cancelled') {
       const restarted = await admin

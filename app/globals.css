@@ -12,6 +12,17 @@
   --line-strong: #8c8d87;
   --signal: #f4512c;
   --signal-hover: #d94120;
+  --signal-text: #b93216;
+  --on-signal: #171817;
+  --neutral-solid: #171817;
+  --neutral-solid-hover: #30322f;
+  --on-neutral: #fffdf8;
+  --header-control: #fffdf8;
+  --header-control-hover: #e9e3d7;
+  --on-header-control: #171817;
+  --link-hover: #b93216;
+  --control-bg: #fffdf8;
+  --overlay: rgb(23 24 23 / 62%);
   --focus: #3151d3;
   --success: #14784d;
   --warning: #9a5b00;
@@ -42,6 +53,17 @@
   --line-strong: #73786f;
   --signal: #ff6a46;
   --signal-hover: #ff8a6c;
+  --signal-text: #ff9a80;
+  --on-signal: #171817;
+  --neutral-solid: #fffdf8;
+  --neutral-solid-hover: #e9e3d7;
+  --on-neutral: #171817;
+  --header-control: #343a33;
+  --header-control-hover: #444b42;
+  --on-header-control: #f4f0e8;
+  --link-hover: #ff9a80;
+  --control-bg: #272b26;
+  --overlay: rgb(0 0 0 / 72%);
   --focus: #88a2ff;
   --success: #63d3a5;
   --warning: #f2bd65;
@@ -97,6 +119,25 @@ textarea {
   font: inherit;
 }
 
+input,
+select,
+textarea {
+  border-color: var(--line-strong);
+  background: var(--control-bg);
+  color: var(--ink);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
+select option {
+  background: var(--surface-strong);
+  color: var(--ink);
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;
@@ -112,9 +153,17 @@ a {
   color: inherit;
 }
 
+a:not(.chakra-button):hover {
+  color: var(--link-hover);
+}
+
+a:not(.chakra-button):active {
+  color: var(--signal-hover);
+}
+
 ::selection {
   background: var(--signal);
-  color: var(--ink);
+  color: var(--on-signal);
 }
 
 :focus-visible {
@@ -197,7 +246,7 @@ a {
   align-items: center;
   justify-content: center;
   background: var(--signal);
-  color: var(--ink);
+  color: var(--on-signal);
   padding: 10px 20px;
   font-weight: 800;
   text-decoration: none;

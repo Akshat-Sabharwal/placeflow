@@ -14,17 +14,20 @@ export async function GET(request: Request) {
     if (!parsed.success) throw new RouteError(400, 'VALIDATION_ERROR', 'Invalid drive filters.', { fieldErrors: parsed.error.flatten().fieldErrors })
 
     let query = viewer.supabase.from('drives').select('*').order('registration_deadline').limit(50)
+    if (viewer.role === 'coordinator') query = query.eq('created_by', viewer.userId)
     if (parsed.data.status) query = query.eq('status', parsed.data.status)
     const { data: drives, error } = await query
     if (error) throw new Error(error.message)
 
     const dtos: DriveDTO[] = (drives ?? []).map(toDriveDTO)
     if (viewer.role === 'student' && dtos.length) {
-      const [{ data: profile }, { data: applications }] = await Promise.all([
+      const [{ data: profile }, { data: applications }, { data: pins }] = await Promise.all([
         viewer.supabase.from('profiles').select('*').eq('id', viewer.userId).single(),
         viewer.supabase.from('applications').select('drive_id').eq('student_id', viewer.userId),
+        createAdminClient().from('pinned_drives').select('drive_id').eq('student_id', viewer.userId),
       ])
       const applied = new Set((applications ?? []).map((item) => item.drive_id))
+      const pinned = new Set((pins ?? []).map((item) => item.drive_id))
       if (profile) {
         for (const drive of dtos) {
           drive.eligibility = evaluateEligibility(
@@ -32,6 +35,7 @@ export async function GET(request: Request) {
             { status: drive.status, registrationDeadline: drive.registrationDeadline, eligibleBranches: drive.eligibleBranches, eligibleYears: drive.eligibleYears, minimumCgpa: drive.minimumCgpa, maximumBacklogs: drive.maximumBacklogs },
           )
           drive.alreadyApplied = applied.has(drive.id)
+          drive.pinned = pinned.has(drive.id)
         }
       }
     }
@@ -60,6 +64,8 @@ export async function POST(request: Request) {
       maximum_backlogs: body.maximumBacklogs,
       registration_deadline: body.registrationDeadline,
       drive_date: body.driveDate ?? null,
+      rounds: body.rounds,
+      active_round_index: body.activeRoundIndex ?? null,
       status: body.status,
     }
     const { data, error } = await createAdminClient().from('drives').insert(row).select().single()

@@ -20,6 +20,7 @@ import {
   Eye,
   FileText,
   FileUp,
+  Search,
   Trash2,
   UploadCloud,
   X,
@@ -64,6 +65,7 @@ export function DocumentWorkspace() {
   const [previewing, setPreviewing] = useState<DocumentDTO | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [durableError, setDurableError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
   const documents = useQuery({
     queryKey: queryKeys.documents,
@@ -182,6 +184,16 @@ export function DocumentWorkspace() {
       : stage === "recording"
         ? "Recording document…"
         : "Upload document";
+  const filteredDocuments = (() => {
+    const needle = search.trim().toLowerCase();
+    if (!needle) return documents.data ?? [];
+    return (documents.data ?? []).filter((document) =>
+      [document.originalName, document.type, document.mimeType]
+        .join(" ")
+        .toLowerCase()
+        .includes(needle),
+    );
+  })();
   return (
     <>
       <Box
@@ -269,7 +281,7 @@ export function DocumentWorkspace() {
               <Button
                 size="sm"
                 bg={colors.signal}
-                color={colors.ink}
+                color={colors.onSignal}
                 onClick={() => upload.mutate()}
                 loading={upload.isPending}
                 loadingText={stageLabel}
@@ -299,12 +311,18 @@ export function DocumentWorkspace() {
         </Alert.Root>
       )}
       <Box mt="8">
-        <Heading as="h2" fontSize="2xl" mb="4">
-          Your document library
-        </Heading>
-        {documents.data?.length ? (
+        <Flex justify="space-between" align={{ base: "start", sm: "center" }} direction={{ base: "column", sm: "row" }} gap="3" mb="4">
+          <Heading as="h2" fontSize="2xl">Your document library</Heading>
+          <Box position="relative" w={{ base: "full", sm: "320px" }}>
+            <Box position="absolute" left="3" top="50%" transform="translateY(-50%)" color={colors.muted} pointerEvents="none">
+              <Search size={17} />
+            </Box>
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} pl="10" bg={colors.surface} placeholder="Search documents" aria-label="Search documents" />
+          </Box>
+        </Flex>
+        {filteredDocuments.length ? (
           <Flex direction="column" gap="3">
-            {documents.data.map((document) => (
+            {filteredDocuments.map((document) => (
               <Flex
                 key={document.id}
                 bg={colors.surface}
@@ -357,6 +375,11 @@ export function DocumentWorkspace() {
               </Flex>
             ))}
           </Flex>
+        ) : documents.data?.length ? (
+          <EmptyState
+            title="No matching documents"
+            description="Try a file name, document category, or file type."
+          />
         ) : (
           <EmptyState
             title="Your document library is empty"
@@ -449,7 +472,7 @@ export function DocumentWorkspace() {
                         Open the signed file in a compatible desktop
                         application.
                       </Text>
-                      <Button asChild bg={colors.signal} color={colors.ink}>
+                      <Button asChild bg={colors.signal} color={colors.onSignal} _hover={{ bg: colors.signalDark }} _active={{ bg: colors.signalDark }}>
                         <a href={previewUrl} target="_blank" rel="noreferrer">
                           <Download size={17} />
                           Open or download

@@ -18,6 +18,7 @@ import { ApiErrorAlert, PageSkeleton, RefreshNotice } from "@/components/async-s
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EligibilityPanel } from "@/components/eligibility-panel";
 import { StatusBadge } from "@/components/status-badge";
+import { DriveRounds } from "@/components/drive-rounds";
 
 export default function StudentDriveDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -52,9 +53,10 @@ export default function StudentDriveDetailPage() {
       <Button asChild variant="ghost" size="sm" mb="5"><Link href="/student/drives"><ArrowLeft size={16} />Back to drives</Link></Button>
       {query.isRefetchError && <Box mb="5"><RefreshNotice onRetry={() => query.refetch()} /></Box>}
       <Flex justify="space-between" align="start" gap="5" direction={{ base: "column", md: "row" }}>
-        <Box><Text color={colors.signalDark} fontWeight="800" textTransform="uppercase" letterSpacing=".08em" fontSize="xs">{drive.companyName}</Text><Heading as="h1" mt="2" fontSize={{ base: "3xl", md: "5xl" }} letterSpacing="-.05em">{drive.jobRole}</Heading></Box>
+        <Box><Text color={colors.signalText} fontWeight="800" textTransform="uppercase" letterSpacing=".08em" fontSize="xs">{drive.companyName}</Text><Heading as="h1" mt="2" fontSize={{ base: "3xl", md: "5xl" }} letterSpacing="-.05em">{drive.jobRole}</Heading></Box>
         <Flex gap="3" align="center"><StatusBadge status={drive.status} />{query.isFetching && <Spinner size="sm" aria-label="Updating drive" />}</Flex>
       </Flex>
+      {drive.rounds.length > 0 && <Box mt="6"><DriveRounds rounds={drive.rounds} activeRoundIndex={drive.activeRoundIndex} /></Box>}
       <Grid mt="8" templateColumns={{ base: "1fr", lg: "1.25fr .75fr" }} gap="5">
         <Box>
           <Box bg={colors.surface} border="1px solid" borderColor={colors.line} borderRadius="18px" p={{ base: "5", md: "7" }}>
@@ -77,7 +79,7 @@ export default function StudentDriveDetailPage() {
               <Box mt="4">
                 <label htmlFor="resume" style={{ fontWeight: 700, fontSize: "14px" }}>Resume</label>
                 <NativeSelect.Root mt="2"><NativeSelect.Field id="resume" value={resumeId} onChange={(event) => setResumeId(event.target.value)}><option value="">Choose a resume</option>{resumes.map((resume) => <option key={resume.id} value={resume.id}>{resume.originalName}</option>)}</NativeSelect.Field><NativeSelect.Indicator /></NativeSelect.Root>
-                <Button mt="4" w="full" bg={colors.signal} color={colors.ink} disabled={!canApply} onClick={() => setConfirming(true)}>Apply now</Button>
+                <Button mt="4" w="full" bg={colors.signal} color={colors.onSignal} _hover={{ bg: colors.signalDark }} _active={{ bg: colors.signalDark }} disabled={!canApply} onClick={() => setConfirming(true)}>Apply now</Button>
                 {!eligible && <Text color={colors.muted} fontSize="sm" mt="3">Resolve the eligibility items above before applying.</Text>}
               </Box>
             ) : (

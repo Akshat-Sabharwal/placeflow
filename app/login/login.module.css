@@ -1,13 +1,29 @@
 .shell { min-height: 100svh; display: grid; place-items: center; padding: 2rem; background: var(--paper); color: var(--ink); }
 .card { width: min(100%, 30rem); padding: clamp(2rem, 7vw, 3.5rem); border: 1px solid var(--line); border-radius: 1.5rem; background: var(--surface); box-shadow: var(--shadow-lg); }
-.brand { color: var(--signal); font-weight: 800; letter-spacing: -.04em; text-decoration: none; }
+.brand { width: fit-content; color: var(--ink); }
+.brand a { text-decoration: none; }
+.brand a:hover { color: var(--signal-text); }
 .eyebrow { margin: 2.5rem 0 .75rem; color: var(--ink-soft); font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .card h1 { margin: 0; font-size: clamp(2.4rem, 8vw, 4rem); line-height: .95; letter-spacing: -.06em; }
-.copy { margin: 1.25rem 0 2rem; color: var(--ink-soft); line-height: 1.6; }
+.copy { margin: 1.25rem 0 1.5rem; color: var(--ink-soft); line-height: 1.6; }
+.roleTabs { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; padding: .35rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--paper-deep); }
+.roleTabs button { min-height: 2.75rem; border: 1px solid transparent; border-radius: .65rem; background: transparent; color: var(--ink-soft); font: inherit; font-weight: 750; cursor: pointer; }
+.roleTabs button:hover { border-color: var(--line-strong); background: var(--surface); color: var(--ink); }
+.roleTabs button[aria-selected="true"] { border-color: var(--signal); background: var(--signal); color: var(--on-signal); box-shadow: var(--shadow-sm); }
+.roleTabs button[aria-selected="true"]:hover { background: var(--signal-hover); color: var(--on-signal); }
+.rolePanel > p { min-height: 2.8rem; margin: 1rem 0; color: var(--ink-soft); font-size: .9rem; line-height: 1.45; }
 .actions { display: grid; gap: .75rem; }
-.actions button { min-height: 3.25rem; border: 1px solid var(--ink); border-radius: .75rem; background: var(--ink); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
-.actions button + button { background: transparent; color: var(--ink); }
+.actions button { min-height: 3.25rem; border: 1px solid var(--neutral-solid); border-radius: .75rem; background: var(--neutral-solid); color: var(--on-neutral); font: inherit; font-weight: 700; cursor: pointer; }
+.actions button:hover { border-color: var(--neutral-solid-hover); background: var(--neutral-solid-hover); color: var(--on-neutral); }
+.actions button + button { border-color: var(--line-strong); background: var(--surface); color: var(--ink); }
+.actions button + button:hover { border-color: var(--ink); background: var(--paper-deep); color: var(--ink); }
 .actions button:disabled { cursor: wait; opacity: .55; }
-.actions button:focus-visible, .brand:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.actions button:focus-visible, .roleTabs button:focus-visible, .brand a:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .error { margin-top: 1rem; color: var(--danger); line-height: 1.45; }
 .note { margin: 1.5rem 0 0; color: var(--ink-soft); font-size: .85rem; }
+
+@media (max-width: 34rem) {
+  .shell { padding: 1rem; }
+  .card { padding: 1.5rem; }
+  .actions button { padding-inline: .75rem; font-size: .9rem; }
+}

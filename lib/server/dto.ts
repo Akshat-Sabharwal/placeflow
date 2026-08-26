@@ -25,6 +25,7 @@ export const toProfileDTO = (row: Tables<'profiles'>): ProfileDTO => ({
   themePreference: row.theme_preference,
   defaultGroupVisibility: row.default_group_visibility,
   onboardingCompletedAt: row.onboarding_completed_at,
+  activeProfileDocumentId: row.active_profile_document_id,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 })
@@ -43,6 +44,19 @@ export const toDriveDTO = (row: Tables<'drives'>): DriveDTO => ({
   maximumBacklogs: row.maximum_backlogs,
   registrationDeadline: row.registration_deadline,
   driveDate: row.drive_date,
+  rounds: Array.isArray(row.rounds)
+    ? row.rounds.flatMap((round) => {
+        if (!round || typeof round !== 'object' || Array.isArray(round)) return []
+        const name = 'name' in round && typeof round.name === 'string' ? round.name : null
+        if (!name) return []
+        const description =
+          'description' in round && typeof round.description === 'string'
+            ? round.description
+            : null
+        return [{ name, description }]
+      })
+    : [],
+  activeRoundIndex: row.active_round_index,
   status: row.status,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -54,6 +68,8 @@ export const toApplicationDTO = (row: Tables<'applications'>): ApplicationDTO =>
   driveId: row.drive_id,
   resumeDocumentId: row.resume_document_id,
   status: row.status,
+  candidateResponse: row.candidate_response,
+  candidateRespondedAt: row.candidate_responded_at,
   appliedAt: row.applied_at,
   updatedAt: row.updated_at,
 })

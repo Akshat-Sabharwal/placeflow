@@ -7,6 +7,7 @@ export type DriveStatus =
   | 'completed'
   | 'cancelled'
 export type ApplicationStatus = 'applied' | 'shortlisted' | 'selected' | 'rejected'
+export type CandidateResponse = 'pending' | 'accepted' | 'declined'
 export type DocumentType = 'resume' | 'marksheet' | 'other'
 export type CommunityVisibility = 'public' | 'private'
 export type CommunityMemberRole = 'owner' | 'moderator' | 'member'
@@ -47,6 +48,7 @@ export type ProfileDTO = {
   themePreference: ThemePreference
   defaultGroupVisibility: CommunityVisibility
   onboardingCompletedAt: string | null
+  activeProfileDocumentId: string | null
   createdAt: string
   updatedAt: string
 }
@@ -110,6 +112,11 @@ export const ELIGIBILITY_REASONS = [
 export type EligibilityReason = (typeof ELIGIBILITY_REASONS)[number]
 export type EligibilityDTO = { eligible: boolean; reasons: EligibilityReason[] }
 
+export type DriveRoundDTO = {
+  name: string
+  description: string | null
+}
+
 export type DriveDTO = {
   id: string
   createdBy: string
@@ -124,6 +131,8 @@ export type DriveDTO = {
   maximumBacklogs: number
   registrationDeadline: string
   driveDate: string | null
+  rounds: DriveRoundDTO[]
+  activeRoundIndex: number | null
   status: DriveStatus
   createdAt: string
   updatedAt: string
@@ -131,6 +140,7 @@ export type DriveDTO = {
   alreadyApplied?: boolean
   applicationCount?: number
   resumes?: DocumentDTO[]
+  pinned?: boolean
 }
 
 export type ApplicationDTO = {
@@ -139,6 +149,8 @@ export type ApplicationDTO = {
   driveId: string
   resumeDocumentId: string
   status: ApplicationStatus
+  candidateResponse: CandidateResponse
+  candidateRespondedAt: string | null
   appliedAt: string
   updatedAt: string
   companyName?: string
@@ -156,7 +168,10 @@ export type ApplicantDTO = {
   cgpa: number | null
   backlogs: number | null
   applicationStatus: ApplicationStatus
+  candidateResponse: CandidateResponse
+  candidateRespondedAt: string | null
   resumeDocumentId: string
+  activeProfileDocumentId: string | null
   appliedAt: string
   updatedAt: string
 }
@@ -260,9 +275,17 @@ export type ProfileGraphEdgeDTO = {
   source: string
   target: string
   sharedGroups: number
+  groupIds: string[]
+}
+
+export type ProfileGraphGroupDTO = {
+  id: string
+  name: string
+  memberIds: string[]
 }
 
 export type ProfileGraphDTO = {
   nodes: ProfileGraphNodeDTO[]
   edges: ProfileGraphEdgeDTO[]
+  groups: ProfileGraphGroupDTO[]
 }

@@ -3,7 +3,7 @@ import { stageOnboardingSchema } from '@/lib/contracts/schemas'
 import { apiData, assertSameOrigin, handleRoute, parseJson, PRIVATE_NO_STORE_HEADERS, RouteError } from '@/lib/server/http'
 import {
   loadOnboardingSnapshot,
-  requireUnlockedStudentProfile,
+  requireStudentProfile,
   toOnboardingRecordDTO,
 } from '@/lib/server/onboarding'
 import { createAdminClient } from '@/lib/server/supabase-admin'
@@ -22,7 +22,7 @@ export async function PATCH(request: Request) {
     const viewer = await authorizeRequest('student')
     const body = await parseJson(request, stageOnboardingSchema)
     const admin = createAdminClient()
-    await requireUnlockedStudentProfile(admin, viewer.userId)
+    await requireStudentProfile(admin, viewer.userId)
 
     const [{ data: record, error: recordError }, { data: extraction, error: extractionError }] = await Promise.all([
       admin
@@ -46,10 +46,6 @@ export async function PATCH(request: Request) {
         field: 'extractionId',
       })
     }
-    if (record.status === 'submitted') {
-      throw new RouteError(409, 'PROFILE_LOCKED', 'Your placement profile is already locked.')
-    }
-
     const { data, error } = await admin
       .from('onboarding_records')
       .update({

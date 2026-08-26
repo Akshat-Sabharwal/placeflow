@@ -88,14 +88,25 @@ const driveFieldsSchema = z.object({
   maximumBacklogs: z.number().int().min(0).max(99),
   registrationDeadline: isoDateTime,
   driveDate: z.union([isoDateTime, z.null()]).optional(),
+  rounds: z.array(z.object({
+    name: trimmed(1, 120),
+    description: z.union([z.string().trim().max(500), z.literal(''), z.null()]).optional(),
+  }).strict()).max(12),
+  activeRoundIndex: z.union([z.number().int().min(0), z.null()]).optional(),
 }).strict()
 
 export const createDriveSchema = driveFieldsSchema
-  .extend({ status: z.enum(['draft', 'published']) })
+  .extend({
+    rounds: driveFieldsSchema.shape.rounds.default([]),
+    status: z.enum(['draft', 'published']),
+  })
   .strict()
   .superRefine((value, ctx) => {
     if (value.driveDate && new Date(value.driveDate) < new Date(value.registrationDeadline)) {
       ctx.addIssue({ code: 'custom', path: ['driveDate'], message: 'Drive date must be after the registration deadline.' })
+    }
+    if (value.activeRoundIndex !== undefined && value.activeRoundIndex !== null && value.activeRoundIndex >= value.rounds.length) {
+      ctx.addIssue({ code: 'custom', path: ['activeRoundIndex'], message: 'Choose a round that exists.' })
     }
   })
 
@@ -107,6 +118,9 @@ export const updateDriveSchema = driveFieldsSchema
 export const applySchema = z.object({ resumeDocumentId: uuidSchema }).strict()
 export const changeApplicationStatusSchema = z
   .object({ status: z.enum(['shortlisted', 'selected', 'rejected']) })
+  .strict()
+export const candidateResponseSchema = z
+  .object({ response: z.enum(['accepted', 'declined']) })
   .strict()
 
 export const documentMetadataSchema = z
